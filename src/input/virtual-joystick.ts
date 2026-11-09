@@ -147,14 +147,26 @@ export function createVirtualJoystick(
     visual.deadZone = config.deadZone;
   };
 
-  /** Park the drawn stick on its anchor for the current viewport. */
+  /**
+   * Park the drawn stick on its anchor for the current viewport.
+   *
+   * The anchor is clamped so the ring stays fully visible: the resting height
+   * and the radius are tuned independently, and a large radius low on the
+   * screen would otherwise draw a stick sliced off by the bottom edge.
+   */
   const refreshIdle = (): void => {
     visual.radius = config.radius;
     visual.deadZone = config.deadZone;
     if (pointerId !== null) return;
-    const idle = anchorPoint(config, getSize());
+
+    const size = getSize();
+    const idle = anchorPoint(config, size);
+    const margin = config.radius + 6;
+    idle.x = Math.min(Math.max(idle.x, margin), Math.max(margin, size.width - margin));
+    idle.y = Math.min(Math.max(idle.y, margin), Math.max(margin, size.height - margin));
+
     visual.origin = idle;
-    visual.knob = idle;
+    visual.knob = { x: idle.x, y: idle.y };
   };
 
   const release = (): void => {

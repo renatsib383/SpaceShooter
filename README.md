@@ -134,10 +134,15 @@ undone by accident:
   and centred placement breaks.
 - **Centred buttons stay off the very bottom band**, which is the home
   indicator on most phones and a source of accidental system gestures.
-- **The stick rests low, not mid-screen.** A thumb sits near the bottom edge,
-  and a centred stick drawn at mid-height covers the ship you are watching.
-  Height is tunable (`TUNE` > `Stick height`) and is never touched by a layout
-  change: horizontal placement is derived, vertical position is the player's.
+- **The stick rests low, and a centred stick rests lowest.** A side stick sits
+  under a thumb already curled around the edge of the phone; a centred stick
+  has to be reached across the palm, which only works near the bottom — and
+  drawn any higher it covers the ship. Height is held per stick side and is
+  tunable (`TUNE` > `Stick height`), so tuning the centre never disturbs the
+  height set for a side stick.
+- **The resting ring is clamped on screen.** Height and radius are tuned
+  independently, so a large radius low down would otherwise draw a stick
+  sliced off by the bottom edge.
 - **The hint retires on first input.** It describes the controls it sits next
   to, so it must not linger underneath them.
 - **Touch presence is asked of the devices, not tracked by a listener.** The

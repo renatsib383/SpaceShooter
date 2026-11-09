@@ -241,23 +241,61 @@ function check(name, pass, detail) {
     JSON.stringify(restPos),
   );
 
-  // Height is the player's choice and must survive a layout change.
+  // Each stick side keeps its own resting height.
+  const restAt = async (side) => {
+    await page.evaluate((s) => {
+      window.__sandbox.settings.stickSide = s;
+      window.__sandbox.applyLayout();
+    }, side);
+    await page.waitForTimeout(150);
+    return page.evaluate(() => window.__sandbox.joystick.visual.origin.y / innerHeight);
+  };
+
+  const restCentre = await restAt('center');
+  const restRight = await restAt('right');
+  check(
+    'a centred stick rests lower than a side stick',
+    restCentre > restRight + 0.05,
+    `centre ${restCentre.toFixed(3)} vs right ${restRight.toFixed(3)}`,
+  );
+
   await page.evaluate(() => {
-    window.__sandbox.settings.stick.anchor.y = 0.5;
+    window.__sandbox.settings.stickHeight.center = 0.5;
+    window.__sandbox.settings.stickSide = 'center';
     window.__sandbox.applyLayout();
   });
   await page.waitForTimeout(150);
-  const keptHeight = await page.evaluate(() => ({
+  const tuned = await page.evaluate(() => ({
     y: window.__sandbox.joystick.visual.origin.y / innerHeight,
-    anchorY: window.__sandbox.settings.stick.anchor.y,
+    right: window.__sandbox.settings.stickHeight.right,
   }));
   check(
-    'stick height survives a layout change',
-    Math.abs(keptHeight.anchorY - 0.5) < 1e-9 && Math.abs(keptHeight.y - 0.5) < 0.01,
-    JSON.stringify(keptHeight),
+    'tuning the centre height leaves the side height alone',
+    Math.abs(tuned.y - 0.5) < 0.01 && Math.abs(tuned.right - 0.74) < 1e-9,
+    JSON.stringify(tuned),
   );
+
+  // A big radius low on the screen must not draw a ring sliced off the bottom.
   await page.evaluate(() => {
-    window.__sandbox.settings.stick.anchor.y = 0.78;
+    window.__sandbox.settings.stickHeight.center = 0.92;
+    window.__sandbox.settings.stick.radius = 140;
+    window.__sandbox.applyLayout();
+  });
+  await page.waitForTimeout(150);
+  const clamped = await page.evaluate(() => ({
+    y: window.__sandbox.joystick.visual.origin.y,
+    r: window.__sandbox.joystick.visual.radius,
+    h: innerHeight,
+  }));
+  check(
+    'resting ring is clamped on screen at the largest radius',
+    clamped.y + clamped.r <= clamped.h && clamped.y - clamped.r >= 0,
+    JSON.stringify(clamped),
+  );
+
+  await page.evaluate(() => {
+    window.__sandbox.settings.stickHeight.center = 0.86;
+    window.__sandbox.settings.stick.radius = 64;
     window.__sandbox.applyLayout();
   });
 

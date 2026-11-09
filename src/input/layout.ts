@@ -22,6 +22,20 @@ const STICK_ZONES: Record<StickSide, { x: number; w: number; anchorX: number }> 
   right: { x: 0.5, w: 0.5, anchorX: 0.66 },
 };
 
+/**
+ * Default resting height per stick side, as a fraction of the viewport.
+ *
+ * A centred stick rests lower than a side one. A side stick sits under a thumb
+ * that is already curled around the edge of the phone; a centred stick has to
+ * be reached across the palm, which only works near the bottom — and drawn any
+ * higher it covers the ship the player is watching.
+ */
+export const DEFAULT_REST_HEIGHTS: Record<StickSide, number> = {
+  left: 0.74,
+  center: 0.86,
+  right: 0.74,
+};
+
 type ButtonSpot = { cx: number; cy: number };
 
 /**
@@ -58,11 +72,18 @@ export function applyTouchLayout(
   stick: JoystickConfig,
   // Readonly array: the entries are mutated in place, the list itself is not.
   buttons: ReadonlyArray<PlaceableButton>,
+  /**
+   * Resting height per stick side. Held per side rather than as one number so
+   * that moving the stick to the centre drops it to where a centred stick
+   * belongs, without discarding the height tuned for a side stick.
+   */
+  restHeights: Record<StickSide, number> = DEFAULT_REST_HEIGHTS,
 ): void {
   const zone = STICK_ZONES[stickSide];
   stick.zone.x = zone.x;
   stick.zone.w = zone.w;
   stick.anchor.x = zone.anchorX;
+  stick.anchor.y = restHeights[stickSide];
 
   // 'side' is written for a left stick, 'column' for a centre or right one;
   // each mirrors in the case the stick would otherwise sit on top of it.

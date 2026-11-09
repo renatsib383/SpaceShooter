@@ -1,4 +1,5 @@
 import type { ControlScheme, ShipTuning } from '../game/ship';
+import { DEFAULT_REST_HEIGHTS } from '../input/layout';
 import type { ButtonPlacement, StickSide } from '../input/layout';
 import type { JoystickConfig, StickPlacement } from '../input/virtual-joystick';
 
@@ -7,6 +8,12 @@ export interface TunableSettings {
   stick: JoystickConfig;
   /** Which part of the screen the movement stick claims. */
   stickSide: StickSide;
+  /**
+   * Resting height per stick side. Per side, not one number, so moving the
+   * stick to the centre drops it to where a centred stick belongs without
+   * discarding the height tuned for a side stick.
+   */
+  stickHeight: Record<StickSide, number>;
   /** Where the action buttons sit. */
   buttonPlacement: ButtonPlacement;
   showDebug: boolean;
@@ -92,11 +99,11 @@ const fields: readonly NumericField[] = [
   {
     label: 'Stick height',
     min: 0.35,
-    max: 0.88,
+    max: 0.92,
     step: 0.01,
-    get: (s) => s.stick.anchor.y,
+    get: (s) => s.stickHeight[s.stickSide],
     set: (s, v) => {
-      s.stick.anchor.y = v;
+      s.stickHeight[s.stickSide] = v;
     },
     format: (v) => `${(v * 100).toFixed(0)}% down`,
   },
@@ -131,6 +138,7 @@ export function loadSettings(defaults: TunableSettings): TunableSettings {
         anchor: { ...defaults.stick.anchor, ...saved.stick?.anchor },
       },
       stickSide: saved.stickSide ?? saved.handedness ?? defaults.stickSide,
+      stickHeight: { ...DEFAULT_REST_HEIGHTS, ...defaults.stickHeight, ...saved.stickHeight },
       buttonPlacement: saved.buttonPlacement ?? defaults.buttonPlacement,
       showDebug: saved.showDebug ?? defaults.showDebug,
     };
@@ -207,7 +215,11 @@ export function createTuningPanel(
     body.append(row);
   };
 
-  // Handedness first: it decides which side every other touch control is on.
+  // Set once the sliders exist; the stick-side control calls it so the height
+  // slider shows the value belonging to the newly selected side.
+  let refreshFields = (): void => {};
+
+  // Stick side first: it decides where every other touch control sits.
   const handWrap = document.createElement('div');
   handWrap.className = 'segmented';
   const sides: ReadonlyArray<{ id: StickSide; label: string; hint: string }> = [
@@ -224,6 +236,7 @@ export function createTuningPanel(
       settings.stickSide = id;
       syncHand();
       commit();
+      refreshFields();
     });
     handWrap.append(b);
     return { id, el: b };
@@ -340,6 +353,7 @@ export function createTuningPanel(
   addRow('Recenter on drag', recenter);
 
   // Numeric sliders.
+  const refreshers: Array<() => void> = [];
   for (const field of fields) {
     const input = document.createElement('input');
     input.type = 'range';
@@ -361,8 +375,17 @@ export function createTuningPanel(
       render();
       commit();
     });
+    refreshers.push(() => {
+      input.value = String(field.get(settings));
+      render();
+    });
     addRow(field.label, input, readout);
   }
+
+  // Sliders that read per-side state must be re-read when the side changes.
+  refreshFields = (): void => {
+    for (const refresh of refreshers) refresh();
+  };
 
   // Debug overlay toggle.
   const debug = document.createElement('input');

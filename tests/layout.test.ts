@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyTouchLayout } from '../src/input/layout';
+import { applyTouchLayout, DEFAULT_REST_HEIGHTS } from '../src/input/layout';
 import { defaultJoystickConfig } from '../src/input/virtual-joystick';
 import { defaultTouchButtons } from '../src/input/touch-buttons';
 import type { JoystickConfig } from '../src/input/virtual-joystick';
@@ -16,7 +16,7 @@ function freshButtons() {
   return defaultTouchButtons.map((b) => ({ ...b }));
 }
 
-describe('applyHandedness', () => {
+describe('applyTouchLayout', () => {
   it('puts the stick on the left half for a left thumb', () => {
     const stick = freshStick();
     applyTouchLayout('left', 'side', stick, freshButtons());
@@ -226,17 +226,41 @@ describe('applyHandedness', () => {
     expect(buttons.map((b) => [b.cx, b.cy])).toEqual(once.pos);
   });
 
-  it('never touches the stick height when placing the layout', () => {
-    // Vertical position is the player's choice; only horizontal placement is
-    // derived from the layout, so a layout change must leave anchor.y alone.
+  it('applies the resting height belonging to the stick side', () => {
+    const heights = { left: 0.7, center: 0.9, right: 0.72 };
     for (const side of ['left', 'center', 'right'] as const) {
       for (const placement of ['side', 'center', 'column'] as const) {
         const stick = freshStick();
-        stick.anchor.y = 0.42;
-        applyTouchLayout(side, placement, stick, freshButtons());
-        expect(stick.anchor.y).toBe(0.42);
+        applyTouchLayout(side, placement, stick, freshButtons(), heights);
+        expect(stick.anchor.y).toBe(heights[side]);
       }
     }
+  });
+
+  it('rests a centred stick lower than a stick on either side', () => {
+    expect(DEFAULT_REST_HEIGHTS.center).toBeGreaterThan(DEFAULT_REST_HEIGHTS.left);
+    expect(DEFAULT_REST_HEIGHTS.center).toBeGreaterThan(DEFAULT_REST_HEIGHTS.right);
+  });
+
+  it('keeps each side its own height when the stick moves between them', () => {
+    // Tuning the centre must not disturb the height tuned for a side stick.
+    const heights = { ...DEFAULT_REST_HEIGHTS, center: 0.91, right: 0.66 };
+    const stick = freshStick();
+
+    applyTouchLayout('center', 'column', stick, freshButtons(), heights);
+    expect(stick.anchor.y).toBe(0.91);
+
+    applyTouchLayout('right', 'column', stick, freshButtons(), heights);
+    expect(stick.anchor.y).toBe(0.66);
+
+    applyTouchLayout('center', 'column', stick, freshButtons(), heights);
+    expect(stick.anchor.y).toBe(0.91);
+  });
+
+  it('falls back to the default heights when none are given', () => {
+    const stick = freshStick();
+    applyTouchLayout('center', 'column', stick, freshButtons());
+    expect(stick.anchor.y).toBe(DEFAULT_REST_HEIGHTS.center);
   });
 
   it('rests the stick low enough for a thumb by default', () => {
@@ -247,10 +271,12 @@ describe('applyHandedness', () => {
   });
 
   it('keeps a centred stick horizontally centred at any height', () => {
-    const stick = freshStick();
-    stick.anchor.y = 0.88;
-    applyTouchLayout('center', 'column', stick, freshButtons());
-    expect(stick.zone.x + stick.anchor.x * stick.zone.w).toBeCloseTo(0.5, 9);
-    expect(stick.anchor.y).toBe(0.88);
+    for (const h of [0.4, 0.86, 0.92]) {
+      const stick = freshStick();
+      const heights = { ...DEFAULT_REST_HEIGHTS, center: h };
+      applyTouchLayout('center', 'column', stick, freshButtons(), heights);
+      expect(stick.zone.x + stick.anchor.x * stick.zone.w).toBeCloseTo(0.5, 9);
+      expect(stick.anchor.y).toBe(h);
+    }
   });
 });

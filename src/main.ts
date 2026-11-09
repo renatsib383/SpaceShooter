@@ -5,7 +5,7 @@ import { createShip, defaultShipTuning, updateShip } from './game/ship';
 import { createStarfield, drawStarfield } from './game/starfield';
 import { createGamepadDevice } from './input/gamepad';
 import { createInputManager } from './input/input-manager';
-import { applyTouchLayout } from './input/layout';
+import { applyTouchLayout, DEFAULT_REST_HEIGHTS } from './input/layout';
 import { createKeyboard } from './input/keyboard';
 import { createTouchButtons } from './input/touch-buttons';
 import { createVirtualJoystick, defaultJoystickConfig } from './input/virtual-joystick';
@@ -29,6 +29,7 @@ const settings: TunableSettings = loadSettings({
   ship: { ...defaultShipTuning },
   stick: { ...defaultJoystickConfig, zone: { ...defaultJoystickConfig.zone }, anchor: { ...defaultJoystickConfig.anchor } },
   stickSide: 'center',
+  stickHeight: { ...DEFAULT_REST_HEIGHTS },
   buttonPlacement: 'column',
   showDebug: true,
 });
@@ -50,7 +51,13 @@ const camera = createCamera(0, 0);
 const starfield = createStarfield();
 
 const syncLayout = (): void => {
-  applyTouchLayout(settings.stickSide, settings.buttonPlacement, settings.stick, buttons.visuals);
+  applyTouchLayout(
+    settings.stickSide,
+    settings.buttonPlacement,
+    settings.stick,
+    buttons.visuals,
+    settings.stickHeight,
+  );
   hint.textContent = hintText();
 };
 
