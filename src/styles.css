@@ -178,4 +178,9 @@ body {
   opacity: 0.55;
   max-width: 60vw;
   pointer-events: none;
+  transition: opacity 0.6s ease;
+}
+
+.hint.is-retired {
+  opacity: 0;
 }

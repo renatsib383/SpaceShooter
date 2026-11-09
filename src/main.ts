@@ -5,7 +5,7 @@ import { createShip, defaultShipTuning, updateShip } from './game/ship';
 import { createStarfield, drawStarfield } from './game/starfield';
 import { createGamepadDevice } from './input/gamepad';
 import { createInputManager } from './input/input-manager';
-import { applyHandedness } from './input/layout';
+import { applyTouchLayout } from './input/layout';
 import { createKeyboard } from './input/keyboard';
 import { createTouchButtons } from './input/touch-buttons';
 import { createVirtualJoystick, defaultJoystickConfig } from './input/virtual-joystick';
@@ -29,6 +29,7 @@ const settings: TunableSettings = loadSettings({
   ship: { ...defaultShipTuning },
   stick: { ...defaultJoystickConfig, zone: { ...defaultJoystickConfig.zone }, anchor: { ...defaultJoystickConfig.anchor } },
   handedness: 'right',
+  buttonPlacement: 'side',
   showDebug: true,
 });
 
@@ -49,7 +50,7 @@ const camera = createCamera(0, 0);
 const starfield = createStarfield();
 
 const syncLayout = (): void => {
-  applyHandedness(settings.handedness, settings.stick, buttons.visuals);
+  applyTouchLayout(settings.handedness, settings.buttonPlacement, settings.stick, buttons.visuals);
   hint.textContent = hintText();
 };
 
@@ -81,6 +82,10 @@ canvas.addEventListener('pointerdown', (e) => {
   if (e.pointerType === 'touch' || e.pointerType === 'pen') touchSeen = true;
 });
 
+// The hint explains the controls it sits next to, so it must not linger under
+// them. Retire it as soon as any input arrives.
+let hintRetired = false;
+
 let time = 0;
 let fps = 60;
 
@@ -92,6 +97,11 @@ const loop = createLoop({
     const control = input.poll();
     updateShip(ship, control, settings.ship, dt);
     updateCamera(camera, ship, dt);
+
+    if (!hintRetired && control.source !== 'none') {
+      hintRetired = true;
+      hint.classList.add('is-retired');
+    }
 
     const wanted = touchSeen ? (joystick.active || settings.stick.showIdle ? 1 : 0) : 0;
     touchHudOpacity += (wanted - touchHudOpacity) * Math.min(1, dt * 10);

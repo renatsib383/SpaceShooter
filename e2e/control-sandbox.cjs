@@ -218,6 +218,78 @@ function check(name, pass, detail) {
 
   await layoutFor('right');
 
+  // ---- Centred buttons sit INSIDE the stick's own half. They are only safe
+  // because the buttons claim the pointer in the capture phase, so verify that
+  // a press on one fires and does not also steer. ----
+  const centred = await page.evaluate(async () => {
+    window.__sandbox.settings.buttonPlacement = 'center';
+    window.__sandbox.applyLayout();
+    await new Promise((r) => setTimeout(r, 120));
+    const fire = window.__sandbox.buttons.visuals.find((b) => b.id === 'fire');
+    return {
+      cx: fire.center.x / innerWidth,
+      cy: fire.center.y / innerHeight,
+      zoneX: window.__sandbox.settings.stick.zone.x,
+    };
+  });
+  check(
+    'centred FIRE sits inside the stick half',
+    Math.abs(centred.cx - 0.5) < 0.01 && centred.cx >= centred.zoneX,
+    JSON.stringify(centred),
+  );
+
+  await page.evaluate(([cx, cy]) => {
+    const c = document.querySelector('#stage');
+    c.dispatchEvent(new PointerEvent('pointerdown', {
+      pointerId: 31, pointerType: 'touch', isPrimary: true,
+      clientX: cx * innerWidth, clientY: cy * innerHeight,
+      bubbles: true, cancelable: true,
+    }));
+  }, [centred.cx, centred.cy]);
+  await page.waitForTimeout(200);
+
+  const pressCentred = await page.evaluate(() => ({
+    fire: window.__sandbox.input.state.fire,
+    stickActive: window.__sandbox.joystick.active,
+    stick: Math.hypot(window.__sandbox.input.state.move.x, window.__sandbox.input.state.move.y),
+  }));
+  check('centred FIRE fires', pressCentred.fire === true, JSON.stringify(pressCentred));
+  check(
+    'centred FIRE does not steal the stick',
+    pressCentred.stickActive === false && pressCentred.stick === 0,
+    JSON.stringify(pressCentred),
+  );
+  await page.screenshot({ path: `${SHOT}/06-centred-buttons.png`, scale: 'css' });
+
+  // A drag starting next to the button, still in the stick half, must steer.
+  await page.evaluate(() => {
+    const c = document.querySelector('#stage');
+    c.dispatchEvent(new PointerEvent('pointerup', { pointerId: 31, pointerType: 'touch',
+      clientX: 0, clientY: 0, bubbles: true }));
+    const mk = (t, x, y) => new PointerEvent(t, { pointerId: 32, pointerType: 'touch',
+      isPrimary: true, clientX: x, clientY: y, bubbles: true, cancelable: true });
+    c.dispatchEvent(mk('pointerdown', innerWidth * 0.8, innerHeight * 0.4));
+    c.dispatchEvent(mk('pointermove', innerWidth * 0.86, innerHeight * 0.32));
+  });
+  await page.waitForTimeout(200);
+  const stillSteers = await page.evaluate(() => ({
+    active: window.__sandbox.joystick.active,
+    stick: Math.hypot(window.__sandbox.input.state.move.x, window.__sandbox.input.state.move.y),
+  }));
+  check(
+    'stick still works alongside centred buttons',
+    stillSteers.active === true && stillSteers.stick > 0.1,
+    JSON.stringify(stillSteers),
+  );
+  await page.evaluate(() => document.querySelector('#stage').dispatchEvent(
+    new PointerEvent('pointerup', { pointerId: 32, pointerType: 'touch',
+      clientX: 0, clientY: 0, bubbles: true })));
+
+  await page.evaluate(() => {
+    window.__sandbox.settings.buttonPlacement = 'side';
+    window.__sandbox.applyLayout();
+  });
+
   // ---- Tuning panel opens and schemes switch. ----
   await page.evaluate(() => {
     document.querySelector('#stage').dispatchEvent(

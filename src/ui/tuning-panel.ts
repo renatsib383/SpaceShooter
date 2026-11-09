@@ -1,5 +1,5 @@
 import type { ControlScheme, ShipTuning } from '../game/ship';
-import type { Handedness } from '../input/layout';
+import type { ButtonPlacement, Handedness } from '../input/layout';
 import type { JoystickConfig, StickPlacement } from '../input/virtual-joystick';
 
 export interface TunableSettings {
@@ -7,6 +7,8 @@ export interface TunableSettings {
   stick: JoystickConfig;
   /** Which thumb drives the stick; the action buttons take the other side. */
   handedness: Handedness;
+  /** Where the action buttons sit. */
+  buttonPlacement: ButtonPlacement;
   showDebug: boolean;
 }
 
@@ -109,6 +111,7 @@ export function loadSettings(defaults: TunableSettings): TunableSettings {
       ship: { ...defaults.ship, ...saved.ship },
       stick: { ...defaults.stick, ...saved.stick },
       handedness: saved.handedness ?? defaults.handedness,
+      buttonPlacement: saved.buttonPlacement ?? defaults.buttonPlacement,
       showDebug: saved.showDebug ?? defaults.showDebug,
     };
   } catch {
@@ -213,6 +216,36 @@ export function createTuningPanel(
   };
   syncHand();
   addRow('Stick hand', handWrap);
+
+  // Where the action buttons live.
+  const placeWrap = document.createElement('div');
+  placeWrap.className = 'segmented';
+  const places: ReadonlyArray<{ id: ButtonPlacement; label: string; hint: string }> = [
+    { id: 'side', label: 'Side', hint: 'Buttons on the half opposite the stick' },
+    { id: 'center', label: 'Center', hint: 'Buttons stacked in the middle' },
+  ];
+  const placeButtons = places.map(({ id, label, hint }) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = label;
+    b.title = hint;
+    b.addEventListener('click', () => {
+      settings.buttonPlacement = id;
+      syncPlace();
+      commit();
+    });
+    placeWrap.append(b);
+    return { id, el: b };
+  });
+  const syncPlace = (): void => {
+    for (const { id, el } of placeButtons) {
+      const on = settings.buttonPlacement === id;
+      el.classList.toggle('active', on);
+      el.setAttribute('aria-pressed', String(on));
+    }
+  };
+  syncPlace();
+  addRow('Buttons', placeWrap);
 
   // Control scheme.
   const schemeWrap = document.createElement('div');

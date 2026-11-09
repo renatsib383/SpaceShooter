@@ -71,7 +71,7 @@ The build uses a relative `base`, so it works from a project Pages subpath
 
 | | |
 |---|---|
-| Touch | The stick takes one half of the screen, `FIRE` and `BST` the other. Right-handed by default; switch under `TUNE` > `Stick hand`. |
+| Touch | The stick takes one half of the screen. Right-handed by default; switch under `TUNE` > `Stick hand`. `FIRE` and `BST` sit on the other half, or stacked in the middle via `TUNE` > `Buttons`. |
 | Keyboard | `WASD` or arrows to steer, `Space` to fire, `Shift` to boost. |
 | Gamepad | Left stick steers, right stick aims, `A`/`RT` fires, `LT` boosts. |
 
@@ -127,6 +127,14 @@ undone by accident:
   in place, so applying a hand twice cannot drift.
 - **Button centres are recomputed every frame**, for the same reason the stick
   anchor is: they are fractions of the viewport.
+- **Centred buttons sit inside the stick's own half on purpose.** That is only
+  safe because the buttons claim their pointer in the capture phase and stop
+  propagation, so a press is never also read as a steer. Change that ordering
+  and centred placement breaks.
+- **Centred buttons stay off the very bottom band**, which is the home
+  indicator on most phones and a source of accidental system gestures.
+- **The hint retires on first input.** It describes the controls it sits next
+  to, so it must not linger underneath them.
 
 ## Layout
 
