@@ -152,4 +152,77 @@ describe('applyHandedness', () => {
     applyTouchLayout('right', 'side', stick, buttons);
     expect(buttons.map((b) => [b.cx, b.cy])).toEqual(side);
   });
+
+  it('puts the stick on the middle half when centred', () => {
+    const stick = freshStick();
+    applyTouchLayout('center', 'column', stick, freshButtons());
+    expect(stick.zone.x).toBe(0.25);
+    expect(stick.zone.w).toBe(0.5);
+    // Anchor is a fraction of the zone, so dead centre of the screen.
+    expect(stick.zone.x + stick.anchor.x * stick.zone.w).toBeCloseTo(0.5, 9);
+  });
+
+  it('stacks column buttons vertically on one x', () => {
+    for (const side of ['left', 'center', 'right'] as const) {
+      const stick = freshStick();
+      const buttons = freshButtons();
+      applyTouchLayout(side, 'column', stick, buttons);
+      const xs = new Set(buttons.map((b) => b.cx));
+      expect(xs.size).toBe(1);
+      const ys = buttons.map((b) => b.cy);
+      expect(new Set(ys).size).toBe(ys.length); // distinct heights
+    }
+  });
+
+  it('puts the column on the left for a centre or right stick', () => {
+    for (const side of ['center', 'right'] as const) {
+      const stick = freshStick();
+      const buttons = freshButtons();
+      applyTouchLayout(side, 'column', stick, buttons);
+      for (const b of buttons) expect(b.cx).toBeLessThan(0.25);
+    }
+  });
+
+  it('moves the column clear of a left stick instead of overlapping it', () => {
+    const stick = freshStick();
+    const buttons = freshButtons();
+    applyTouchLayout('left', 'column', stick, buttons);
+    for (const b of buttons) expect(b.cx).toBeGreaterThan(0.75);
+  });
+
+  it('never puts a column button inside the stick zone, for any stick side', () => {
+    for (const side of ['left', 'center', 'right'] as const) {
+      const stick = freshStick();
+      const buttons = freshButtons();
+      applyTouchLayout(side, 'column', stick, buttons);
+      const start = stick.zone.x;
+      const end = stick.zone.x + stick.zone.w;
+      for (const b of buttons) {
+        expect(b.cx >= start && b.cx <= end).toBe(false);
+      }
+    }
+  });
+
+  it('keeps column buttons far enough apart not to overlap', () => {
+    const stick = freshStick();
+    const buttons = freshButtons();
+    applyTouchLayout('center', 'column', stick, buttons);
+    const [a, b] = buttons;
+    expect(Math.abs(a!.cy - b!.cy)).toBeGreaterThan(0.1);
+  });
+
+  it('is idempotent for the centre stick with a column', () => {
+    const stick = freshStick();
+    const buttons = freshButtons();
+    applyTouchLayout('center', 'column', stick, buttons);
+    const once = {
+      zone: { ...stick.zone },
+      anchor: { ...stick.anchor },
+      pos: buttons.map((b) => [b.cx, b.cy]),
+    };
+    applyTouchLayout('center', 'column', stick, buttons);
+    expect(stick.zone).toEqual(once.zone);
+    expect(stick.anchor).toEqual(once.anchor);
+    expect(buttons.map((b) => [b.cx, b.cy])).toEqual(once.pos);
+  });
 });

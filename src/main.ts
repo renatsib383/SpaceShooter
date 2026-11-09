@@ -28,8 +28,8 @@ const getSize = (): { width: number; height: number } => ({
 const settings: TunableSettings = loadSettings({
   ship: { ...defaultShipTuning },
   stick: { ...defaultJoystickConfig, zone: { ...defaultJoystickConfig.zone }, anchor: { ...defaultJoystickConfig.anchor } },
-  handedness: 'right',
-  buttonPlacement: 'side',
+  stickSide: 'center',
+  buttonPlacement: 'column',
   showDebug: true,
 });
 
@@ -50,7 +50,7 @@ const camera = createCamera(0, 0);
 const starfield = createStarfield();
 
 const syncLayout = (): void => {
-  applyTouchLayout(settings.handedness, settings.buttonPlacement, settings.stick, buttons.visuals);
+  applyTouchLayout(settings.stickSide, settings.buttonPlacement, settings.stick, buttons.visuals);
   hint.textContent = hintText();
 };
 
@@ -68,10 +68,15 @@ installDevHook({
 });
 
 const hintText = (): string => {
-  const steer = settings.handedness === 'right' ? 'right' : 'left';
-  const actions = settings.handedness === 'right' ? 'left' : 'right';
+  const steer =
+    settings.stickSide === 'center' ? 'middle' : `${settings.stickSide} half`;
+  // Where the buttons ended up is derived from the layout, not guessed, so the
+  // hint cannot drift out of step with it.
+  const fire = buttons.visuals.find((b) => b.id === 'fire');
+  const actions =
+    !fire ? 'screen' : fire.cx < 0.4 ? 'left' : fire.cx > 0.6 ? 'right' : 'middle';
   return (
-    `Touch the ${steer} half to steer · FIRE / BST on the ${actions}\n` +
+    `Touch the ${steer} to steer · FIRE / BST on the ${actions}\n` +
     'WASD or arrows + Space on desktop · gamepad supported'
   );
 };

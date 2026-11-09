@@ -46,9 +46,9 @@ function check(name, pass, detail) {
   await page.screenshot({ path: `${SHOT}/01-idle.png`, scale: 'css' });
 
   // ---- Touch drag on the left half drives the stick. ----
-  // Default layout is right-handed: stick on the right half, actions on the left.
-  const ox = Math.round(vp.width * 0.75);
-  const oy = Math.round(vp.height * 0.7);
+  // Default layout: stick on the middle half, buttons in a left column.
+  const ox = Math.round(vp.width * 0.5);
+  const oy = Math.round(vp.height * 0.45);
   await page.touchscreen.tap(ox, oy); // wake the touch HUD
 
   // Hold a drag up-and-right using raw pointer events with a real pointerId.
@@ -145,8 +145,8 @@ function check(name, pass, detail) {
     });
     c.dispatchEvent(mk('pointerdown', 11, x, y));
     c.dispatchEvent(mk('pointermove', 11, x, y - 60));
-    // Right-handed layout mirrors FIRE to 0.14 / 0.74 of the viewport.
-    c.dispatchEvent(mk('pointerdown', 12, vw * 0.14, vh * 0.74));
+    // Column layout puts FIRE at 0.15 / 0.78 of the viewport.
+    c.dispatchEvent(mk('pointerdown', 12, vw * 0.15, vh * 0.78));
   }, [ox, oy, vp.width, vp.height]);
   await page.waitForTimeout(300);
 
@@ -178,8 +178,8 @@ function check(name, pass, detail) {
       pointerId: 21, pointerType: 'touch', isPrimary: true,
       clientX: cx, clientY: cy, bubbles: true, cancelable: true,
     });
-    c.dispatchEvent(mk('pointerdown', vw * 0.25, vh * 0.3));
-    c.dispatchEvent(mk('pointermove', vw * 0.1, vh * 0.2));
+    c.dispatchEvent(mk('pointerdown', vw * 0.08, vh * 0.3));
+    c.dispatchEvent(mk('pointermove', vw * 0.04, vh * 0.2));
   }, [vp.width, vp.height]);
   await page.waitForTimeout(200);
   const rightHalf = await page.evaluate(() => ({
@@ -189,34 +189,56 @@ function check(name, pass, detail) {
   check('touch on the action side does not steer', rightHalf.stickActive === false && rightHalf.stick === 0, JSON.stringify(rightHalf));
 
   // ---- Handedness: the whole touch layout must swap sides together. ----
-  const layoutFor = async (hand) => {
-    await page.evaluate((h) => {
-      window.__sandbox.settings.handedness = h;
+  const layoutFor = async (side, placement) => {
+    await page.evaluate(([s, p]) => {
+      window.__sandbox.settings.stickSide = s;
+      window.__sandbox.settings.buttonPlacement = p;
       window.__sandbox.applyLayout();
-    }, hand);
+    }, [side, placement]);
     await page.waitForTimeout(120);
     return page.evaluate(() => ({
       zoneX: window.__sandbox.settings.stick.zone.x,
+      zoneW: window.__sandbox.settings.stick.zone.w,
       anchorX: window.__sandbox.joystick.visual.origin.x / innerWidth,
-      buttons: window.__sandbox.buttons.visuals.map((b) => b.center.x / innerWidth),
+      bx: window.__sandbox.buttons.visuals.map((b) => b.center.x / innerWidth),
+      by: window.__sandbox.buttons.visuals.map((b) => b.center.y / innerHeight),
     }));
   };
 
-  const right = await layoutFor('right');
+  const centreStick = await layoutFor('center', 'column');
   check(
-    'right-handed: stick right, actions left',
-    right.zoneX === 0.5 && right.anchorX > 0.5 && right.buttons.every((x) => x < 0.5),
+    'centre stick: zone is the middle half, anchor dead centre',
+    centreStick.zoneX === 0.25 && centreStick.zoneW === 0.5 &&
+      Math.abs(centreStick.anchorX - 0.5) < 0.01,
+    JSON.stringify(centreStick),
+  );
+  check(
+    'column buttons: one x on the left, distinct heights',
+    new Set(centreStick.bx).size === 1 && centreStick.bx[0] < 0.25 &&
+      new Set(centreStick.by).size === centreStick.by.length,
+    JSON.stringify(centreStick),
+  );
+  check(
+    'column buttons sit outside the centre stick zone',
+    centreStick.bx.every((x) => x < centreStick.zoneX),
+    JSON.stringify(centreStick),
+  );
+
+  const leftStick = await layoutFor('left', 'column');
+  check(
+    'column moves clear of a left stick instead of overlapping it',
+    leftStick.bx.every((x) => x > leftStick.zoneX + leftStick.zoneW),
+    JSON.stringify(leftStick),
+  );
+
+  const right = await layoutFor('right', 'side');
+  check(
+    'right stick with side buttons: actions on the left',
+    right.zoneX === 0.5 && right.anchorX > 0.5 && right.bx.every((x) => x < 0.5),
     JSON.stringify(right),
   );
 
-  const left = await layoutFor('left');
-  check(
-    'left-handed: stick left, actions right',
-    left.zoneX === 0 && left.anchorX < 0.5 && left.buttons.every((x) => x > 0.5),
-    JSON.stringify(left),
-  );
-
-  await layoutFor('right');
+  await layoutFor('center', 'column');
 
   // ---- Centred buttons sit INSIDE the stick's own half. They are only safe
   // because the buttons claim the pointer in the capture phase, so verify that
@@ -268,8 +290,8 @@ function check(name, pass, detail) {
       clientX: 0, clientY: 0, bubbles: true }));
     const mk = (t, x, y) => new PointerEvent(t, { pointerId: 32, pointerType: 'touch',
       isPrimary: true, clientX: x, clientY: y, bubbles: true, cancelable: true });
-    c.dispatchEvent(mk('pointerdown', innerWidth * 0.8, innerHeight * 0.4));
-    c.dispatchEvent(mk('pointermove', innerWidth * 0.86, innerHeight * 0.32));
+    c.dispatchEvent(mk('pointerdown', innerWidth * 0.5, innerHeight * 0.4));
+    c.dispatchEvent(mk('pointermove', innerWidth * 0.56, innerHeight * 0.32));
   });
   await page.waitForTimeout(200);
   const stillSteers = await page.evaluate(() => ({
@@ -286,7 +308,7 @@ function check(name, pass, detail) {
       clientX: 0, clientY: 0, bubbles: true })));
 
   await page.evaluate(() => {
-    window.__sandbox.settings.buttonPlacement = 'side';
+    window.__sandbox.settings.buttonPlacement = 'column';
     window.__sandbox.applyLayout();
   });
 
@@ -372,8 +394,8 @@ function check(name, pass, detail) {
   // propagation, so presence detection must not depend on listener order. ----
   for (const [label, spot] of [
     ['empty space', [0.7, 0.3]],
-    ['the FIRE button', [0.14, 0.74]],
-    ['the BST button', [0.3, 0.86]],
+    ['the FIRE button', [0.15, 0.78]],
+    ['the BST button', [0.15, 0.6]],
   ]) {
     const fresh = await ctx.newPage();
     await fresh.goto(URL, { waitUntil: 'load' });

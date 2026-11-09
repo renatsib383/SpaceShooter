@@ -71,7 +71,7 @@ The build uses a relative `base`, so it works from a project Pages subpath
 
 | | |
 |---|---|
-| Touch | The stick takes one half of the screen. Right-handed by default; switch under `TUNE` > `Stick hand`. `FIRE` and `BST` sit on the other half, or stacked in the middle via `TUNE` > `Buttons`. |
+| Touch | The stick takes half the screen — left, middle or right, under `TUNE` > `Stick side`. `FIRE` and `BST` go in a vertical `Column`, spread over the opposite half (`Side`), or stacked in the middle (`Center`), under `TUNE` > `Buttons`. Default: centre stick, left column. |
 | Keyboard | `WASD` or arrows to steer, `Space` to fire, `Shift` to boost. |
 | Gamepad | Left stick steers, right stick aims, `A`/`RT` fires, `LT` boosts. |
 
@@ -121,10 +121,11 @@ undone by accident:
 - **Dynamic placement by default.** The stick appears under the thumb rather
   than demanding the thumb find it. `Fixed` is available for players who want
   a consistent spot.
-- **Handedness moves the whole layout.** The stick and the action buttons
-  always swap together; moving only the stick would drop it on top of `FIRE`.
-  The mirrored layout is derived from canonical positions rather than flipped
-  in place, so applying a hand twice cannot drift.
+- **The stick and the buttons are placed together.** `Side` and `Column` always
+  keep the buttons clear of the stick's zone, mirroring to the free side when
+  the stick would otherwise sit on top of them — a left stick pushes the column
+  to the right edge. Both are derived from canonical positions rather than
+  flipped in place, so applying a layout twice cannot drift.
 - **Button centres are recomputed every frame**, for the same reason the stick
   anchor is: they are fractions of the viewport.
 - **Centred buttons sit inside the stick's own half on purpose.** That is only

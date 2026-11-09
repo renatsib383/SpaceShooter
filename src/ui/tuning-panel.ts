@@ -1,12 +1,12 @@
 import type { ControlScheme, ShipTuning } from '../game/ship';
-import type { ButtonPlacement, Handedness } from '../input/layout';
+import type { ButtonPlacement, StickSide } from '../input/layout';
 import type { JoystickConfig, StickPlacement } from '../input/virtual-joystick';
 
 export interface TunableSettings {
   ship: ShipTuning;
   stick: JoystickConfig;
-  /** Which thumb drives the stick; the action buttons take the other side. */
-  handedness: Handedness;
+  /** Which part of the screen the movement stick claims. */
+  stickSide: StickSide;
   /** Where the action buttons sit. */
   buttonPlacement: ButtonPlacement;
   showDebug: boolean;
@@ -106,11 +106,13 @@ export function loadSettings(defaults: TunableSettings): TunableSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaults;
-    const saved = JSON.parse(raw) as Partial<TunableSettings>;
+    // `handedness` is the pre-centre-stick name for `stickSide`; read it so a
+    // returning player keeps the side they chose.
+    const saved = JSON.parse(raw) as Partial<TunableSettings> & { handedness?: StickSide };
     return {
       ship: { ...defaults.ship, ...saved.ship },
       stick: { ...defaults.stick, ...saved.stick },
-      handedness: saved.handedness ?? defaults.handedness,
+      stickSide: saved.stickSide ?? saved.handedness ?? defaults.stickSide,
       buttonPlacement: saved.buttonPlacement ?? defaults.buttonPlacement,
       showDebug: saved.showDebug ?? defaults.showDebug,
     };
@@ -190,17 +192,18 @@ export function createTuningPanel(
   // Handedness first: it decides which side every other touch control is on.
   const handWrap = document.createElement('div');
   handWrap.className = 'segmented';
-  const hands: ReadonlyArray<{ id: Handedness; label: string }> = [
-    { id: 'left', label: 'Left' },
-    { id: 'right', label: 'Right' },
+  const sides: ReadonlyArray<{ id: StickSide; label: string; hint: string }> = [
+    { id: 'left', label: 'Left', hint: 'Stick on the left half' },
+    { id: 'center', label: 'Center', hint: 'Stick on the middle half' },
+    { id: 'right', label: 'Right', hint: 'Stick on the right half' },
   ];
-  const handButtons = hands.map(({ id, label }) => {
+  const handButtons = sides.map(({ id, label, hint }) => {
     const b = document.createElement('button');
     b.type = 'button';
     b.textContent = label;
-    b.title = `Stick under the ${id} thumb, actions on the other side`;
+    b.title = hint;
     b.addEventListener('click', () => {
-      settings.handedness = id;
+      settings.stickSide = id;
       syncHand();
       commit();
     });
@@ -209,19 +212,20 @@ export function createTuningPanel(
   });
   const syncHand = (): void => {
     for (const { id, el } of handButtons) {
-      const on = settings.handedness === id;
+      const on = settings.stickSide === id;
       el.classList.toggle('active', on);
       el.setAttribute('aria-pressed', String(on));
     }
   };
   syncHand();
-  addRow('Stick hand', handWrap);
+  addRow('Stick side', handWrap);
 
   // Where the action buttons live.
   const placeWrap = document.createElement('div');
   placeWrap.className = 'segmented';
   const places: ReadonlyArray<{ id: ButtonPlacement; label: string; hint: string }> = [
-    { id: 'side', label: 'Side', hint: 'Buttons on the half opposite the stick' },
+    { id: 'column', label: 'Column', hint: 'Buttons in a vertical column at the edge' },
+    { id: 'side', label: 'Side', hint: 'Buttons spread over the half opposite the stick' },
     { id: 'center', label: 'Center', hint: 'Buttons stacked in the middle' },
   ];
   const placeButtons = places.map(({ id, label, hint }) => {
