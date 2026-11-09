@@ -51,7 +51,9 @@ export function createTouchButtons(
   getSize: () => Size,
   specs: readonly TouchButtonSpec[] = defaultTouchButtons,
 ): TouchButtons {
-  const held = new Map<number, TouchButtonSpec['id']>();
+  // One pointer may hold several buttons at once: ОГОНЬ and СТОП overlap on
+  // purpose so a single thumb in the shared band presses both.
+  const held = new Map<number, TouchButtonSpec['id'][]>();
   let sawTouch = false;
   const visuals: TouchButtonVisual[] = specs.map((s) => ({
     ...s,
@@ -72,18 +74,19 @@ export function createTouchButtons(
     }
   };
 
-  const hit = (p: Vec2): TouchButtonVisual | undefined => {
+  /** Every button whose hit area contains the point, not just the first. */
+  const hitAll = (p: Vec2): TouchButtonSpec['id'][] => {
     refreshCenters();
-    // Last spec wins so smaller buttons drawn on top stay reachable.
-    for (let i = visuals.length - 1; i >= 0; i--) {
-      const v = visuals[i]!;
-      if (Math.hypot(p.x - v.center.x, p.y - v.center.y) <= v.r) return v;
+    const ids: TouchButtonSpec['id'][] = [];
+    for (const v of visuals) {
+      if (Math.hypot(p.x - v.center.x, p.y - v.center.y) <= v.r) ids.push(v.id);
     }
-    return undefined;
+    return ids;
   };
 
   const syncPressed = (): void => {
-    const active = new Set(held.values());
+    const active = new Set<TouchButtonSpec['id']>();
+    for (const ids of held.values()) for (const id of ids) active.add(id);
     for (const v of visuals) v.pressed = active.has(v.id);
   };
 
@@ -92,9 +95,9 @@ export function createTouchButtons(
     // claims a press, so it is the only listener guaranteed to see a touch
     // that lands on a button. It must record presence itself.
     if (e.pointerType === 'touch' || e.pointerType === 'pen') sawTouch = true;
-    const target2 = hit(localPoint(e));
-    if (!target2) return;
-    held.set(e.pointerId, target2.id);
+    const ids = hitAll(localPoint(e));
+    if (ids.length === 0) return;
+    held.set(e.pointerId, ids);
     try {
       target.setPointerCapture(e.pointerId);
     } catch {
@@ -129,10 +132,13 @@ export function createTouchButtons(
       refreshCenters();
     },
     sample(out: ControlState): void {
-      const active = new Set(held.values());
-      if (active.has('fire')) out.fire = true;
-      if (active.has('boost')) out.boost = true;
-      if (active.has('brake')) out.brake = true;
+      for (const ids of held.values()) {
+        for (const id of ids) {
+          if (id === 'fire') out.fire = true;
+          else if (id === 'boost') out.boost = true;
+          else if (id === 'brake') out.brake = true;
+        }
+      }
     },
     dispose(): void {
       target.removeEventListener('pointerdown', onPointerDown, { capture: true });

@@ -125,11 +125,18 @@ describe('applyTouchLayout', () => {
     expect(left.map((b) => [b.cx, b.cy])).toEqual(right.map((b) => [b.cx, b.cy]));
   });
 
-  it('never overlaps two button hit areas, in any placement', () => {
+  it('overlaps ОГОНЬ and СТОП, and keeps every other pair apart', () => {
     // Checked in pixels on a tall phone, since the radii are in pixels while
     // the positions are fractions.
+    //
+    // The fire/brake overlap is deliberate: a touch is a single point, so the
+    // only way one thumb can hold both is for their hit areas to share a band.
+    // Every other pair must stay separated or presses become ambiguous.
     const W = 390;
     const H = 664;
+    const isFireBrake = (a: string, b: string): boolean =>
+      (a === 'fire' && b === 'brake') || (a === 'brake' && b === 'fire');
+
     for (const side of ['left', 'center', 'right'] as const) {
       for (const placement of ['side', 'center', 'column'] as const) {
         const stick = freshStick();
@@ -140,11 +147,60 @@ describe('applyTouchLayout', () => {
             const a = buttons[i]!;
             const b = buttons[j]!;
             const distance = Math.hypot((a.cx - b.cx) * W, (a.cy - b.cy) * H);
-            expect(distance).toBeGreaterThan(a.r + b.r);
+            if (isFireBrake(a.id, b.id)) {
+              expect(distance).toBeLessThan(a.r + b.r);
+            } else {
+              expect(distance).toBeGreaterThan(a.r + b.r);
+            }
           }
         }
       }
     }
+  });
+
+  it('leaves a shared band wide enough for a thumb', () => {
+    const H = 664;
+    for (const placement of ['side', 'center', 'column'] as const) {
+      const stick = freshStick();
+      const buttons = freshButtons();
+      applyTouchLayout('center', placement, stick, buttons);
+      const fire = buttons.find((b) => b.id === 'fire')!;
+      const brake = buttons.find((b) => b.id === 'brake')!;
+      const gap = Math.abs(fire.cy - brake.cy) * H;
+      const overlap = fire.r + brake.r - gap;
+      // At least 20 px of shared depth: smaller than that and hitting both
+      // becomes a matter of luck.
+      expect(overlap).toBeGreaterThan(20);
+      // But not so much that either button loses a region of its own.
+      expect(gap).toBeGreaterThan(Math.max(fire.r, brake.r) * 0.5);
+    }
+  });
+
+  it('keeps a point in the shared band inside both circles', () => {
+    const W = 390;
+    const H = 664;
+    const stick = freshStick();
+    const buttons = freshButtons();
+    applyTouchLayout('center', 'column', stick, buttons);
+    const fire = buttons.find((b) => b.id === 'fire')!;
+    const brake = buttons.find((b) => b.id === 'brake')!;
+
+    const midY = ((fire.cy + brake.cy) / 2) * H;
+    const x = fire.cx * W;
+    const inside = (b: typeof fire, py: number): boolean =>
+      Math.hypot(x - b.cx * W, py - b.cy * H) <= b.r;
+
+    expect(inside(fire, midY)).toBe(true);
+    expect(inside(brake, midY)).toBe(true);
+
+    // And each still has a region that is unambiguously its own.
+    const deepFire = (fire.cy * H) + fire.r * 0.8;
+    expect(inside(fire, deepFire)).toBe(true);
+    expect(inside(brake, deepFire)).toBe(false);
+
+    const deepBrake = (brake.cy * H) - brake.r * 0.8;
+    expect(inside(brake, deepBrake)).toBe(true);
+    expect(inside(fire, deepBrake)).toBe(false);
   });
 
   it('keeps every button fully on screen', () => {

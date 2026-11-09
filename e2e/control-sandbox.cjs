@@ -470,8 +470,8 @@ function check(name, pass, detail) {
   for (const [label, spot] of [
     ['empty space', [0.7, 0.3]],
     ['the FIRE button', [0.15, 0.82]],
-    ['the BRAKE button', [0.15, 0.655]],
-    ['the BOOST button', [0.15, 0.49]],
+    ['the BRAKE button', [0.15, 0.75]],
+    ['the BOOST button', [0.15, 0.6]],
   ]) {
     const fresh = await ctx.newPage();
     await fresh.goto(URL, { waitUntil: 'load' });
@@ -557,6 +557,64 @@ function check(name, pass, detail) {
     JSON.stringify(braked),
   );
   await page.screenshot({ path: `${SHOT}/07-braking.png`, scale: 'css' });
+
+  // ---- One thumb in the shared band must hold ОГОНЬ and СТОП together. ----
+  const band = await page.evaluate(() => {
+    const S = window.__sandbox;
+    S.settings.stickSide = 'center';
+    S.settings.buttonPlacement = 'column';
+    S.applyLayout();
+    const fire = S.buttons.visuals.find((b) => b.id === 'fire');
+    const brake = S.buttons.visuals.find((b) => b.id === 'brake');
+    return {
+      x: fire.center.x,
+      shared: (fire.center.y + brake.center.y) / 2,
+      onlyFire: fire.center.y + fire.r * 0.8,
+      onlyBrake: brake.center.y - brake.r * 0.8,
+    };
+  });
+
+  const pressAt = async (x, y, id) => {
+    await page.evaluate(([x, y, id]) => {
+      document.querySelector('#stage').dispatchEvent(new PointerEvent('pointerdown', {
+        pointerId: id, pointerType: 'touch', isPrimary: true,
+        clientX: x, clientY: y, bubbles: true, cancelable: true,
+      }));
+    }, [x, y, id]);
+    await page.waitForTimeout(180);
+    const state = await page.evaluate(() => ({
+      fire: window.__sandbox.input.state.fire,
+      brake: window.__sandbox.input.state.brake,
+    }));
+    await page.evaluate((id) => {
+      document.querySelector('#stage').dispatchEvent(new PointerEvent('pointerup', {
+        pointerId: id, pointerType: 'touch', clientX: 0, clientY: 0, bubbles: true,
+      }));
+    }, id);
+    await page.waitForTimeout(120);
+    return state;
+  };
+
+  const both = await pressAt(band.x, band.shared, 61);
+  check(
+    'one finger in the shared band holds ОГОНЬ and СТОП together',
+    both.fire === true && both.brake === true,
+    JSON.stringify(both),
+  );
+
+  const fireOnly = await pressAt(band.x, band.onlyFire, 62);
+  check(
+    'low on ОГОНЬ fires without braking',
+    fireOnly.fire === true && fireOnly.brake === false,
+    JSON.stringify(fireOnly),
+  );
+
+  const brakeOnly = await pressAt(band.x, band.onlyBrake, 63);
+  check(
+    'high on СТОП brakes without firing',
+    brakeOnly.brake === true && brakeOnly.fire === false,
+    JSON.stringify(brakeOnly),
+  );
 
   check('no runtime errors over the whole run', errors.length === 0, errors.join(' | '));
 
