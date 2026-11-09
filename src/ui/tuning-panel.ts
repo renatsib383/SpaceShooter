@@ -90,6 +90,17 @@ const fields: readonly NumericField[] = [
     format: (v) => `${v.toFixed(0)}px`,
   },
   {
+    label: 'Stick height',
+    min: 0.35,
+    max: 0.88,
+    step: 0.01,
+    get: (s) => s.stick.anchor.y,
+    set: (s, v) => {
+      s.stick.anchor.y = v;
+    },
+    format: (v) => `${(v * 100).toFixed(0)}% down`,
+  },
+  {
     label: 'Stick dead zone',
     min: 0,
     max: 0.5,
@@ -111,7 +122,14 @@ export function loadSettings(defaults: TunableSettings): TunableSettings {
     const saved = JSON.parse(raw) as Partial<TunableSettings> & { handedness?: StickSide };
     return {
       ship: { ...defaults.ship, ...saved.ship },
-      stick: { ...defaults.stick, ...saved.stick },
+      stick: {
+        ...defaults.stick,
+        ...saved.stick,
+        // Nested objects would otherwise be shared with the defaults literal,
+        // and a partial saved anchor would drop the axis it omits.
+        zone: { ...defaults.stick.zone, ...saved.stick?.zone },
+        anchor: { ...defaults.stick.anchor, ...saved.stick?.anchor },
+      },
       stickSide: saved.stickSide ?? saved.handedness ?? defaults.stickSide,
       buttonPlacement: saved.buttonPlacement ?? defaults.buttonPlacement,
       showDebug: saved.showDebug ?? defaults.showDebug,

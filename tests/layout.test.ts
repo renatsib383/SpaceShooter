@@ -225,4 +225,32 @@ describe('applyHandedness', () => {
     expect(stick.anchor).toEqual(once.anchor);
     expect(buttons.map((b) => [b.cx, b.cy])).toEqual(once.pos);
   });
+
+  it('never touches the stick height when placing the layout', () => {
+    // Vertical position is the player's choice; only horizontal placement is
+    // derived from the layout, so a layout change must leave anchor.y alone.
+    for (const side of ['left', 'center', 'right'] as const) {
+      for (const placement of ['side', 'center', 'column'] as const) {
+        const stick = freshStick();
+        stick.anchor.y = 0.42;
+        applyTouchLayout(side, placement, stick, freshButtons());
+        expect(stick.anchor.y).toBe(0.42);
+      }
+    }
+  });
+
+  it('rests the stick low enough for a thumb by default', () => {
+    const stick = freshStick();
+    // Below the middle of the screen, and clear of the very bottom edge.
+    expect(stick.anchor.y).toBeGreaterThan(0.6);
+    expect(stick.anchor.y).toBeLessThan(0.9);
+  });
+
+  it('keeps a centred stick horizontally centred at any height', () => {
+    const stick = freshStick();
+    stick.anchor.y = 0.88;
+    applyTouchLayout('center', 'column', stick, freshButtons());
+    expect(stick.zone.x + stick.anchor.x * stick.zone.w).toBeCloseTo(0.5, 9);
+    expect(stick.anchor.y).toBe(0.88);
+  });
 });

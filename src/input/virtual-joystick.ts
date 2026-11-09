@@ -29,7 +29,9 @@ export interface JoystickConfig extends StickGeometry {
 export const defaultJoystickConfig: JoystickConfig = {
   placement: 'dynamic',
   zone: { x: 0, y: 0, w: 0.5, h: 1 },
-  anchor: { x: 0.34, y: 0.68 },
+  // Low enough to sit under a thumb at rest, high enough that the ring is not
+  // clipped by the bottom edge at a large radius.
+  anchor: { x: 0.34, y: 0.78 },
   radius: 64,
   deadZone: 0.12,
   recenter: true,

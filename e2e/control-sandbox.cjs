@@ -224,6 +224,43 @@ function check(name, pass, detail) {
     JSON.stringify(centreStick),
   );
 
+  const restPos = await page.evaluate(() => ({
+    x: window.__sandbox.joystick.visual.origin.x / innerWidth,
+    y: window.__sandbox.joystick.visual.origin.y / innerHeight,
+    radius: window.__sandbox.joystick.visual.radius,
+    h: innerHeight,
+  }));
+  check(
+    'stick rests low and horizontally centred',
+    Math.abs(restPos.x - 0.5) < 0.01 && restPos.y > 0.6 && restPos.y < 0.9,
+    JSON.stringify(restPos),
+  );
+  check(
+    'resting ring is not clipped by the bottom edge',
+    restPos.y * restPos.h + restPos.radius < restPos.h,
+    JSON.stringify(restPos),
+  );
+
+  // Height is the player's choice and must survive a layout change.
+  await page.evaluate(() => {
+    window.__sandbox.settings.stick.anchor.y = 0.5;
+    window.__sandbox.applyLayout();
+  });
+  await page.waitForTimeout(150);
+  const keptHeight = await page.evaluate(() => ({
+    y: window.__sandbox.joystick.visual.origin.y / innerHeight,
+    anchorY: window.__sandbox.settings.stick.anchor.y,
+  }));
+  check(
+    'stick height survives a layout change',
+    Math.abs(keptHeight.anchorY - 0.5) < 1e-9 && Math.abs(keptHeight.y - 0.5) < 0.01,
+    JSON.stringify(keptHeight),
+  );
+  await page.evaluate(() => {
+    window.__sandbox.settings.stick.anchor.y = 0.78;
+    window.__sandbox.applyLayout();
+  });
+
   const leftStick = await layoutFor('left', 'column');
   check(
     'column moves clear of a left stick instead of overlapping it',
