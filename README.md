@@ -181,12 +181,19 @@ which device is driving. Rendering is strictly downstream of simulation.
 
 ## Camera
 
-The camera leads the ship in its direction of travel, and pulls back as it
-speeds up — 1.0x at rest down to 0.62x at top speed — so entering a turn at
-speed shows you what you are turning into. Both the follow and the zoom use
-exponential easing, exact at any timestep, and the zoom eases slower than the
-follow on purpose: a zoom that tracks speed exactly makes the whole screen
-breathe on every throttle tap.
+The camera leads the ship in its direction of travel and pulls back as it
+speeds up, so entering a turn at speed shows you what you are turning into.
+
+Pull-back has two stages. Speed alone takes it from 1.0x at rest to 0.62x at
+top speed; then a *sustained speed* accumulator carries it on to 0.42x over
+about five seconds of continuous burn, so a long run keeps widening the view
+instead of settling. The accumulator bleeds off in under two seconds — the
+wide view should take a burn to earn and no time at all to lose.
+
+Sustain ramps linearly rather than easing exponentially, so "five seconds at
+full throttle" means exactly that instead of an asymptote that never quite
+arrives. The zoom itself eases slower than the positional follow, or the whole
+screen breathes on every throttle tap.
 
 World-to-screen lives in one place (`render/view-transform.ts`). Zoom is why
 that was worth naming: it has to reach the ships, the parallax starfield and
@@ -195,8 +202,8 @@ would have drifted apart. Star *size* stays in screen pixels while star
 *positions* scale, or the far layers would vanish exactly when pulling back is
 meant to reveal more.
 
-Tunable live under `НАСТРОЙКИ`: `Отъезд на скорости`, `Плавность отъезда`,
-`Упреждение камеры`.
+Tunable live under `НАСТРОЙКИ`: `Отъезд на скорости`, `Отъезд на разгоне`,
+`Время разгона`, `Плавность отъезда`, `Упреждение камеры`.
 
 ## Combat
 

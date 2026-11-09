@@ -178,7 +178,7 @@ const loop = createLoop({
 
     drawThreatMarkers(ctx, world.enemies, viewTransform);
     drawDamageFlash(ctx, world.player.hitFlash, width, height);
-    drawCombatHud(ctx, world, width, height, settings.showDebug ? 158 : 18);
+    drawCombatHud(ctx, world, width, height, settings.showDebug ? 174 : 18);
 
     drawJoystick(ctx, joystick.visual, touchHudOpacity);
     drawTouchButtons(ctx, buttons.visuals, touchHudOpacity);
@@ -187,6 +187,7 @@ const loop = createLoop({
       drawDebugOverlay(ctx, {
         fps,
         zoom: camera.zoom,
+        sustain: camera.sustain,
         control: input.state,
         ship,
         tuning: settings.ship,

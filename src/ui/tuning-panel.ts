@@ -137,6 +137,28 @@ const fields: readonly NumericField[] = [
     format: (v) => ui.units.times(v),
   },
   {
+    label: ui.panel.zoomSustained,
+    min: 0.25,
+    max: 1,
+    step: 0.02,
+    get: (s) => s.camera.zoomAtSustained,
+    set: (s, v) => {
+      s.camera.zoomAtSustained = v;
+    },
+    format: (v) => ui.units.times(v),
+  },
+  {
+    label: ui.panel.sustainRise,
+    min: 0.5,
+    max: 15,
+    step: 0.5,
+    get: (s) => s.camera.sustainRise,
+    set: (s, v) => {
+      s.camera.sustainRise = v;
+    },
+    format: (v) => ui.units.seconds(v, 1),
+  },
+  {
     label: ui.panel.zoomEase,
     min: 0.05,
     max: 2,
