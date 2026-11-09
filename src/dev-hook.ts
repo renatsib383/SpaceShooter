@@ -1,4 +1,5 @@
 import type { Camera } from './game/camera';
+import type { World } from './game/world';
 import type { Ship } from './game/ship';
 import type { InputManager } from './input/input-manager';
 import type { TouchButtons } from './input/touch-buttons';
@@ -11,6 +12,7 @@ import type { TunableSettings } from './ui/tuning-panel';
  * bundle keeps the global namespace clean.
  */
 export interface SandboxHandle {
+  world: World;
   ship: Ship;
   camera: Camera;
   input: InputManager;

@@ -2,9 +2,9 @@
 
 A space exploration and combat game for the browser, built mobile-first.
 
-Current state: **control sandbox**. Flight model and touch controls only — you
-can fly a ship around an empty starfield and tune how it feels. Combat,
-star systems, factions and story come in later iterations.
+Current state: **playable combat loop**. Fly, shoot, get shot at, die and
+respawn, with raiders that hunt you. Star systems, factions and story come in
+later iterations.
 
 ## Origin and licensing
 
@@ -167,9 +167,33 @@ e2e/         browser-level checks
 Input devices all reduce to a single `ControlState`, so physics never learns
 which device is driving. Rendering is strictly downstream of simulation.
 
+## Combat
+
+Raiders arrive on a timer up to a cap, close to a preferred range and hold it
+rather than ramming, and shoot when they are lined up and in range. Flying
+into one damages both of you, so ramming is a trade and not a free kill.
+
+Decisions worth keeping:
+
+- **Projectile hits are swept, not sampled.** A bolt at 820 px/s moves about
+  7 px per simulation step, already comparable to a small hitbox; testing only
+  the end position tunnels straight through a target. Collision measures the
+  distance from the target to the segment actually travelled.
+- **Nothing is allocated during play.** Projectiles and particles live in
+  fixed-capacity pools. A full projectile pool drops the shot *without*
+  starting the weapon cooldown — otherwise running out of pool would silently
+  halve the fire rate instead of showing up as the tuning bug it is.
+- **Shots inherit the shooter's velocity**, so firing from a moving ship sends
+  bolts where they are aimed rather than trailing behind.
+- **Weapon cooldown never runs negative**, or idling would bank up free shots.
+- **Off-screen raiders get an edge marker.** With this much inertia the thing
+  shooting you is often outside the viewport, and without a marker the only
+  feedback is the hull dropping, which reads as unfair rather than hard.
+- **Spawn protection is modelled as "not a target"**, one flag covering bolts
+  and ramming alike, and it is re-granted on respawn so deaths cannot chain.
+
 ## Next
 
-1. Weapons, projectiles, damage, and enemies worth shooting.
-2. Procedural star systems and a galaxy to cross.
-3. Factions with reputation that reacts to who you shoot and who you help.
-4. Audio.
+1. Procedural star systems and a galaxy to cross.
+2. Factions with reputation that reacts to who you shoot and who you help.
+3. Audio.

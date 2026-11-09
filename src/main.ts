@@ -1,7 +1,8 @@
 import { beginFrame, createViewport } from './core/canvas';
 import { createLoop } from './core/loop';
 import { createCamera, updateCamera } from './game/camera';
-import { createShip, defaultShipTuning, updateShip } from './game/ship';
+import { defaultShipTuning } from './game/ship';
+import { createWorld, updateWorld } from './game/world';
 import { createStarfield, drawStarfield } from './game/starfield';
 import { createGamepadDevice } from './input/gamepad';
 import { createInputManager } from './input/input-manager';
@@ -9,6 +10,13 @@ import { applyTouchLayout, DEFAULT_REST_HEIGHTS } from './input/layout';
 import { createKeyboard } from './input/keyboard';
 import { createTouchButtons } from './input/touch-buttons';
 import { createVirtualJoystick, defaultJoystickConfig } from './input/virtual-joystick';
+import { drawCombatHud, drawDamageFlash } from './render/combat-hud';
+import {
+  drawEnemies,
+  drawParticles,
+  drawProjectiles,
+  drawThreatMarkers,
+} from './render/combat-renderer';
 import { drawDebugOverlay } from './render/debug-overlay';
 import { drawShip, playerHull } from './render/ship-renderer';
 import { drawJoystick, drawTouchButtons } from './render/touch-hud';
@@ -46,7 +54,8 @@ const input = createInputManager([
   joystick,
 ]);
 
-const ship = createShip(0, 0);
+const world = createWorld();
+const ship = world.player.ship;
 const camera = createCamera(0, 0);
 const starfield = createStarfield();
 
@@ -64,6 +73,7 @@ const syncLayout = (): void => {
 createTuningPanel(ui, settings, syncLayout);
 
 installDevHook({
+  world,
   ship,
   camera,
   input,
@@ -118,7 +128,7 @@ const loop = createLoop({
     joystick.update();
     buttons.update();
     const control = input.poll();
-    updateShip(ship, control, settings.ship, dt);
+    updateWorld(world, { control, shipTuning: settings.ship }, dt);
     updateCamera(camera, ship, dt);
 
     if (!hintRetired && control.source !== 'none') {
@@ -144,8 +154,22 @@ const loop = createLoop({
 
     ctx.save();
     ctx.translate(-camX, -camY);
-    drawShip(ctx, ship, playerHull, alpha, time);
+    drawParticles(ctx, world.particles.items);
+    drawEnemies(ctx, world.enemies, alpha);
+    drawProjectiles(ctx, world.projectiles.items, alpha);
+    if (world.player.alive) {
+      // Blink while protected, so spawn immunity is visible rather than a
+      // surprise when it ends.
+      const protectedNow = world.player.invulnerable > 0;
+      ctx.globalAlpha = protectedNow && Math.floor(time * 10) % 2 === 0 ? 0.35 : 1;
+      drawShip(ctx, ship, playerHull, alpha, time);
+      ctx.globalAlpha = 1;
+    }
     ctx.restore();
+
+    drawThreatMarkers(ctx, world.enemies, camX, camY, width, height);
+    drawDamageFlash(ctx, world.player.hitFlash, width, height);
+    drawCombatHud(ctx, world, width, height, settings.showDebug ? 142 : 18);
 
     drawJoystick(ctx, joystick.visual, touchHudOpacity);
     drawTouchButtons(ctx, buttons.visuals, touchHudOpacity);
