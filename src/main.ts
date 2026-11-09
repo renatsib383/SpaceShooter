@@ -3,6 +3,7 @@ import { createLoop } from './core/loop';
 import { createCamera, defaultCameraTuning, updateCamera } from './game/camera';
 import { defaultShipTuning } from './game/ship';
 import { createWorld, updateWorld } from './game/world';
+import { playerWeapon } from './game/weapon';
 import { createStarfield, drawStarfield } from './game/starfield';
 import { createGamepadDevice } from './input/gamepad';
 import { createInputManager } from './input/input-manager';
@@ -39,6 +40,7 @@ const settings: TunableSettings = loadSettings({
   ship: { ...defaultShipTuning },
   stick: { ...defaultJoystickConfig, zone: { ...defaultJoystickConfig.zone }, anchor: { ...defaultJoystickConfig.anchor } },
   camera: { ...defaultCameraTuning },
+  weapon: { ...playerWeapon },
   stickSide: 'center',
   stickHeight: { ...DEFAULT_REST_HEIGHTS },
   buttonPlacement: 'column',
@@ -126,7 +128,11 @@ const loop = createLoop({
     joystick.update();
     buttons.update();
     const control = input.poll();
-    updateWorld(world, { control, shipTuning: settings.ship }, dt);
+    updateWorld(
+      world,
+      { control, shipTuning: settings.ship, weaponTuning: settings.weapon },
+      dt,
+    );
     updateCamera(camera, ship, settings.camera, dt);
 
     if (!hintRetired && control.source !== 'none') {

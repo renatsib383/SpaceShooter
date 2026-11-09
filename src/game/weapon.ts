@@ -14,6 +14,12 @@ export interface WeaponTuning {
   projectileRadius: number;
   /** Impulse pushed back into the shooter per shot, px/s. */
   recoil: number;
+  /** In-flight correction, radians/s. Zero disables homing entirely. */
+  homingRate: number;
+  /** Half-angle of the acquisition cone, radians. */
+  homingArc: number;
+  /** Acquisition range, px. */
+  homingRange: number;
 }
 
 export const playerWeapon: WeaponTuning = {
@@ -24,6 +30,12 @@ export const playerWeapon: WeaponTuning = {
   spread: 0.03,
   projectileRadius: 3,
   recoil: 12,
+  // Enough to close a near miss, far too little to rescue a bad shot: at
+  // 820 px/s a bolt covers its whole range in about a second, so this is
+  // roughly 50 degrees of correction over its entire flight.
+  homingRate: 0.95,
+  homingArc: 0.4,
+  homingRange: 460,
 };
 
 export const raiderWeapon: WeaponTuning = {
@@ -34,6 +46,11 @@ export const raiderWeapon: WeaponTuning = {
   spread: 0.09,
   projectileRadius: 3,
   recoil: 0,
+  // Raiders fire straight; homing on both sides would make a dogfight
+  // unreadable and leave the player nothing to dodge.
+  homingRate: 0,
+  homingArc: 0,
+  homingRange: 0,
 };
 
 export interface WeaponState {
@@ -91,6 +108,9 @@ export function updateWeapon(
     damage: tuning.damage,
     radius: tuning.projectileRadius,
     faction: shooter.faction,
+    homingRate: tuning.homingRate,
+    homingArc: tuning.homingArc,
+    homingRange: tuning.homingRange,
   });
 
   // A dropped shot must not start the cooldown, or a full pool would also

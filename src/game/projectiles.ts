@@ -12,6 +12,12 @@ export interface Projectile {
   radius: number;
   /** Who fired it; it cannot hit its own side. */
   faction: Faction;
+  /** Maximum in-flight turn, radians/s. Zero means it flies straight. */
+  homingRate: number;
+  /** Half-angle of the cone it will acquire a target within, radians. */
+  homingArc: number;
+  /** Maximum distance at which it will acquire a target, px. */
+  homingRange: number;
   /** Previous position, for render interpolation and swept collision. */
   px: number;
   py: number;
@@ -28,6 +34,9 @@ export interface ProjectilePool {
     damage: number;
     radius: number;
     faction: Faction;
+    homingRate?: number;
+    homingArc?: number;
+    homingRange?: number;
   }): Projectile | null;
   update(dt: number): void;
   clear(): void;
@@ -38,6 +47,7 @@ function blank(): Projectile {
   return {
     alive: false, x: 0, y: 0, vx: 0, vy: 0,
     life: 0, damage: 0, radius: 2, faction: 'player', px: 0, py: 0,
+    homingRate: 0, homingArc: 0, homingRange: 0,
   };
 }
 
@@ -76,6 +86,9 @@ export function createProjectilePool(capacity = 256): ProjectilePool {
         slot.damage = p.damage;
         slot.radius = p.radius;
         slot.faction = p.faction;
+        slot.homingRate = p.homingRate ?? 0;
+        slot.homingArc = p.homingArc ?? 0;
+        slot.homingRange = p.homingRange ?? 0;
         aliveCount++;
         return slot;
       }

@@ -5,7 +5,8 @@ import type { Projectile } from '../src/game/projectiles';
 function bolt(over: Partial<Projectile> = {}): Projectile {
   return {
     alive: true, x: 10, y: 0, px: 0, py: 0,
-    vx: 1000, vy: 0, life: 1, damage: 5, radius: 2, faction: 'player', ...over,
+    vx: 1000, vy: 0, life: 1, damage: 5, radius: 2, faction: 'player',
+    homingRate: 0, homingArc: 0, homingRange: 0, ...over,
   };
 }
 

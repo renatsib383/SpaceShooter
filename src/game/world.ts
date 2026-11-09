@@ -3,7 +3,8 @@ import { createEnemy, raiderTuning, updateEnemy, type Enemy, type EnemyTuning } 
 import { bodiesOverlap, projectileHits, type Collidable } from './collision';
 import { createParticles, type ParticleSystem } from './particles';
 import { createProjectilePool, type ProjectilePool } from './projectiles';
-import { createWeapon, playerWeapon, updateWeapon, type WeaponState } from './weapon';
+import { createWeapon, playerWeapon, updateWeapon, type WeaponState, type WeaponTuning } from './weapon';
+import { homeProjectile, type HomingTarget } from './homing';
 import type { ControlState } from '../input/types';
 import type { Faction } from './faction';
 
@@ -148,6 +149,7 @@ function spawnEnemy(world: World, t: WorldTuning, random: () => number): void {
 export interface WorldUpdateContext {
   control: ControlState;
   shipTuning: ShipTuning;
+  weaponTuning?: WeaponTuning;
   worldTuning?: WorldTuning;
   enemyTuning?: EnemyTuning;
   random?: () => number;
@@ -174,7 +176,7 @@ export function updateWorld(world: World, ctx: WorldUpdateContext, dt: number): 
     shooterView.muzzleOffset = p.radius + 4;
 
     updateWeapon(
-      p.weapon, playerWeapon, shooterView,
+      p.weapon, ctx.weaponTuning ?? playerWeapon, shooterView,
       ctx.control.fire, world.projectiles, dt, random,
     );
 
@@ -202,6 +204,7 @@ export function updateWorld(world: World, ctx: WorldUpdateContext, dt: number): 
     if (Math.hypot(dx, dy) > t.despawnDistance) enemy.alive = false;
   }
 
+  applyHoming(world, dt);
   world.projectiles.update(dt);
   world.particles.update(dt);
   resolveHits(world, t, et);
@@ -211,6 +214,30 @@ export function updateWorld(world: World, ctx: WorldUpdateContext, dt: number): 
     world.spawnTimer = t.spawnInterval;
     const living = world.enemies.reduce((n, e) => n + (e.alive ? 1 : 0), 0);
     if (living < t.maxEnemies) spawnEnemy(world, t, random);
+  }
+}
+
+// Reused so homing never allocates: playerView is re-synced each call, and
+// this array simply points at it.
+const playerTargets: HomingTarget[] = [playerView];
+
+/**
+ * Steer homing projectiles before they move this step.
+ *
+ * Run before the pool update so a correction applies to the segment the
+ * projectile is about to travel; steering afterwards would leave every bolt
+ * one step stale, which is visible at 800 px/s.
+ */
+function applyHoming(world: World, dt: number): void {
+  const player = world.player;
+  for (const projectile of world.projectiles.items) {
+    if (!projectile.alive || projectile.homingRate <= 0) continue;
+    if (projectile.faction === 'player') {
+      homeProjectile(projectile, world.enemies, dt);
+    } else {
+      syncPlayerView(player);
+      homeProjectile(projectile, playerTargets, dt);
+    }
   }
 }
 

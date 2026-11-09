@@ -216,6 +216,17 @@ Decisions worth keeping:
   halve the fire rate instead of showing up as the tuning bug it is.
 - **Shots inherit the shooter's velocity**, so firing from a moving ship sends
   bolts where they are aimed rather than trailing behind.
+- **Player bolts home gently, and only forward.** A bolt acquires a target
+  only inside a narrow cone ahead of it and within range, and turns no faster
+  than its rate allows: enough to close a near miss, nowhere near enough to
+  rescue a bad shot. Steering rotates the velocity and leaves its length
+  alone, so speed, range and travel time are unchanged. Raiders fire straight
+  — homing on both sides would leave the player nothing to dodge.
+- **Homing picks the nearest target inside the cone**, not the nearest
+  overall: choosing globally and then rejecting it would let a target just
+  behind the bolt mask a valid one ahead.
+- **Steering runs before the projectiles move**, or every bolt would correct
+  one step late, which is visible at 820 px/s.
 - **Weapon cooldown never runs negative**, or idling would bank up free shots.
 - **Off-screen raiders get an edge marker.** With this much inertia the thing
   shooting you is often outside the viewport, and without a marker the only

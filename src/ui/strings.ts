@@ -105,6 +105,9 @@ export const ui = {
     drag: 'Торможение',
     turnRate: 'Скорость поворота',
     offAxis: 'Тяга вне курса',
+    homing: 'Самонаведение',
+    homingArc: 'Угол захвата',
+    fireRate: 'Темп стрельбы',
     zoomAtSpeed: 'Отъезд на скорости',
     zoomEase: 'Плавность отъезда',
     lookAhead: 'Упреждение камеры',
@@ -120,6 +123,8 @@ export const ui = {
     turnsPerSecond: (v: number): string => `${(v / (Math.PI * 2)).toFixed(2)} об/с`,
     times: (v: number): string => `${v.toFixed(2)}×`,
     degrees: (v: number): string => `${v.toFixed(0)}°`,
+    radiansAsDegrees: (v: number): string => `${((v * 180) / Math.PI).toFixed(0)}°`,
+    perSecond: (v: number): string => `${v.toFixed(1)}/с`,
   },
 
   hint: {

@@ -1,4 +1,5 @@
 import { defaultCameraTuning, type CameraTuning } from '../game/camera';
+import { playerWeapon, type WeaponTuning } from '../game/weapon';
 import type { ControlScheme, ShipTuning } from '../game/ship';
 import { DEFAULT_REST_HEIGHTS } from '../input/layout';
 import type { ButtonPlacement, StickSide } from '../input/layout';
@@ -8,6 +9,7 @@ import { ui } from './strings';
 export interface TunableSettings {
   ship: ShipTuning;
   camera: CameraTuning;
+  weapon: WeaponTuning;
   stick: JoystickConfig;
   /** Which part of the screen the movement stick claims. */
   stickSide: StickSide;
@@ -89,6 +91,41 @@ const fields: readonly NumericField[] = [
     format: (v) => v.toFixed(2),
   },
   {
+    label: ui.panel.homing,
+    min: 0,
+    max: 3,
+    step: 0.05,
+    get: (s) => s.weapon.homingRate,
+    set: (s, v) => {
+      s.weapon.homingRate = v;
+    },
+    // Shown as degrees per second: radians mean nothing while thumbing a
+    // slider on a phone.
+    format: (v) => (v <= 0 ? 'выкл' : ui.units.radiansAsDegrees(v) + '/с'),
+  },
+  {
+    label: ui.panel.homingArc,
+    min: 0.05,
+    max: 1.2,
+    step: 0.05,
+    get: (s) => s.weapon.homingArc,
+    set: (s, v) => {
+      s.weapon.homingArc = v;
+    },
+    format: (v) => ui.units.radiansAsDegrees(v),
+  },
+  {
+    label: ui.panel.fireRate,
+    min: 0.05,
+    max: 0.6,
+    step: 0.01,
+    get: (s) => s.weapon.fireInterval,
+    set: (s, v) => {
+      s.weapon.fireInterval = v;
+    },
+    format: (v) => ui.units.perSecond(1 / v),
+  },
+  {
     label: ui.panel.zoomAtSpeed,
     min: 0.3,
     max: 1,
@@ -166,6 +203,7 @@ export function loadSettings(defaults: TunableSettings): TunableSettings {
     return {
       ship: { ...defaults.ship, ...saved.ship },
       camera: { ...defaultCameraTuning, ...defaults.camera, ...saved.camera },
+      weapon: { ...playerWeapon, ...defaults.weapon, ...saved.weapon },
       stick: {
         ...defaults.stick,
         ...saved.stick,
