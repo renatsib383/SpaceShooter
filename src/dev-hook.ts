@@ -1,6 +1,7 @@
 import type { Camera } from './game/camera';
 import type { Ship } from './game/ship';
 import type { InputManager } from './input/input-manager';
+import type { TouchButtons } from './input/touch-buttons';
 import type { VirtualJoystick } from './input/virtual-joystick';
 import type { TunableSettings } from './ui/tuning-panel';
 
@@ -14,7 +15,10 @@ export interface SandboxHandle {
   camera: Camera;
   input: InputManager;
   joystick: VirtualJoystick;
+  buttons: TouchButtons;
   settings: TunableSettings;
+  /** Re-apply the touch layout after changing `settings.handedness`. */
+  applyLayout(): void;
 }
 
 declare global {

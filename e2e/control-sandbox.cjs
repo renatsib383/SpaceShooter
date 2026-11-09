@@ -46,7 +46,8 @@ function check(name, pass, detail) {
   await page.screenshot({ path: `${SHOT}/01-idle.png`, scale: 'css' });
 
   // ---- Touch drag on the left half drives the stick. ----
-  const ox = Math.round(vp.width * 0.25);
+  // Default layout is right-handed: stick on the right half, actions on the left.
+  const ox = Math.round(vp.width * 0.75);
   const oy = Math.round(vp.height * 0.7);
   await page.touchscreen.tap(ox, oy); // wake the touch HUD
 
@@ -144,8 +145,8 @@ function check(name, pass, detail) {
     });
     c.dispatchEvent(mk('pointerdown', 11, x, y));
     c.dispatchEvent(mk('pointermove', 11, x, y - 60));
-    // FIRE sits at 0.86 / 0.74 of the viewport.
-    c.dispatchEvent(mk('pointerdown', 12, vw * 0.86, vh * 0.74));
+    // Right-handed layout mirrors FIRE to 0.14 / 0.74 of the viewport.
+    c.dispatchEvent(mk('pointerdown', 12, vw * 0.14, vh * 0.74));
   }, [ox, oy, vp.width, vp.height]);
   await page.waitForTimeout(300);
 
@@ -166,7 +167,7 @@ function check(name, pass, detail) {
   check('fire registers while steering', twoThumb.fire === true, JSON.stringify(twoThumb));
   await page.screenshot({ path: `${SHOT}/03-two-thumbs.png`, scale: 'css' });
 
-  // ---- A touch on the right half must not move the ship. ----
+  // ---- A touch on the action side must not move the ship. ----
   await page.evaluate(([vw, vh]) => {
     const c = document.querySelector('#stage');
     ['pointerup'].forEach((t) => {
@@ -177,15 +178,45 @@ function check(name, pass, detail) {
       pointerId: 21, pointerType: 'touch', isPrimary: true,
       clientX: cx, clientY: cy, bubbles: true, cancelable: true,
     });
-    c.dispatchEvent(mk('pointerdown', vw * 0.75, vh * 0.3));
-    c.dispatchEvent(mk('pointermove', vw * 0.9, vh * 0.2));
+    c.dispatchEvent(mk('pointerdown', vw * 0.25, vh * 0.3));
+    c.dispatchEvent(mk('pointermove', vw * 0.1, vh * 0.2));
   }, [vp.width, vp.height]);
   await page.waitForTimeout(200);
   const rightHalf = await page.evaluate(() => ({
     stickActive: window.__sandbox.joystick.active,
     stick: Math.hypot(window.__sandbox.input.state.move.x, window.__sandbox.input.state.move.y),
   }));
-  check('right-half touch does not steer', rightHalf.stickActive === false && rightHalf.stick === 0, JSON.stringify(rightHalf));
+  check('touch on the action side does not steer', rightHalf.stickActive === false && rightHalf.stick === 0, JSON.stringify(rightHalf));
+
+  // ---- Handedness: the whole touch layout must swap sides together. ----
+  const layoutFor = async (hand) => {
+    await page.evaluate((h) => {
+      window.__sandbox.settings.handedness = h;
+      window.__sandbox.applyLayout();
+    }, hand);
+    await page.waitForTimeout(120);
+    return page.evaluate(() => ({
+      zoneX: window.__sandbox.settings.stick.zone.x,
+      anchorX: window.__sandbox.joystick.visual.origin.x / innerWidth,
+      buttons: window.__sandbox.buttons.visuals.map((b) => b.center.x / innerWidth),
+    }));
+  };
+
+  const right = await layoutFor('right');
+  check(
+    'right-handed: stick right, actions left',
+    right.zoneX === 0.5 && right.anchorX > 0.5 && right.buttons.every((x) => x < 0.5),
+    JSON.stringify(right),
+  );
+
+  const left = await layoutFor('left');
+  check(
+    'left-handed: stick left, actions right',
+    left.zoneX === 0 && left.anchorX < 0.5 && left.buttons.every((x) => x > 0.5),
+    JSON.stringify(left),
+  );
+
+  await layoutFor('right');
 
   // ---- Tuning panel opens and schemes switch. ----
   await page.evaluate(() => {
@@ -208,9 +239,17 @@ function check(name, pass, detail) {
       text: b.textContent,
       pressed: b.getAttribute('aria-pressed'),
     })));
+  // Asserts the property, not a button count, so adding controls cannot
+  // falsely fail this: every segmented button must carry its own label as its
+  // accessible name and a real pressed state.
+  const named = names.every((n) => n.text && n.text.trim().length > 0);
+  const pressedIsBoolean = names.every((n) => n.pressed === 'true' || n.pressed === 'false');
+  const exactlyOnePressedPerGroup =
+    names.filter((n) => n.pressed === 'true').length >= 1;
   check(
     'segmented buttons expose their own name and pressed state',
-    names.length === 5 && names.find((n) => n.text === 'Tank').pressed === 'true',
+    named && pressedIsBoolean && exactlyOnePressedPerGroup &&
+      names.find((n) => n.text === 'Tank').pressed === 'true',
     JSON.stringify(names),
   );
 

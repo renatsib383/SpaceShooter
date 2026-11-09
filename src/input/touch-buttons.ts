@@ -24,6 +24,11 @@ export interface TouchButtonVisual extends TouchButtonSpec {
 
 export interface TouchButtons extends InputDevice {
   readonly visuals: readonly TouchButtonVisual[];
+  /**
+   * Recompute button centres. Call once per frame: they are fractions of the
+   * viewport, so they move on resize, rotation and any layout change.
+   */
+  update(): void;
 }
 
 interface Size {
@@ -108,6 +113,9 @@ export function createTouchButtons(
 
   return {
     visuals,
+    update(): void {
+      refreshCenters();
+    },
     sample(out: ControlState): void {
       const active = new Set(held.values());
       if (active.has('fire')) out.fire = true;

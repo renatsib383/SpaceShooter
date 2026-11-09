@@ -71,7 +71,7 @@ The build uses a relative `base`, so it works from a project Pages subpath
 
 | | |
 |---|---|
-| Touch | Left half of the screen steers. `FIRE` and `BST` sit bottom-right. |
+| Touch | The stick takes one half of the screen, `FIRE` and `BST` the other. Right-handed by default; switch under `TUNE` > `Stick hand`. |
 | Keyboard | `WASD` or arrows to steer, `Space` to fire, `Shift` to boost. |
 | Gamepad | Left stick steers, right stick aims, `A`/`RT` fires, `LT` boosts. |
 
@@ -121,6 +121,12 @@ undone by accident:
 - **Dynamic placement by default.** The stick appears under the thumb rather
   than demanding the thumb find it. `Fixed` is available for players who want
   a consistent spot.
+- **Handedness moves the whole layout.** The stick and the action buttons
+  always swap together; moving only the stick would drop it on top of `FIRE`.
+  The mirrored layout is derived from canonical positions rather than flipped
+  in place, so applying a hand twice cannot drift.
+- **Button centres are recomputed every frame**, for the same reason the stick
+  anchor is: they are fractions of the viewport.
 
 ## Layout
 

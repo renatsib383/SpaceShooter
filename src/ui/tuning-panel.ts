@@ -1,9 +1,12 @@
 import type { ControlScheme, ShipTuning } from '../game/ship';
+import type { Handedness } from '../input/layout';
 import type { JoystickConfig, StickPlacement } from '../input/virtual-joystick';
 
 export interface TunableSettings {
   ship: ShipTuning;
   stick: JoystickConfig;
+  /** Which thumb drives the stick; the action buttons take the other side. */
+  handedness: Handedness;
   showDebug: boolean;
 }
 
@@ -105,6 +108,7 @@ export function loadSettings(defaults: TunableSettings): TunableSettings {
     return {
       ship: { ...defaults.ship, ...saved.ship },
       stick: { ...defaults.stick, ...saved.stick },
+      handedness: saved.handedness ?? defaults.handedness,
       showDebug: saved.showDebug ?? defaults.showDebug,
     };
   } catch {
@@ -179,6 +183,36 @@ export function createTuningPanel(
     row.append(control);
     body.append(row);
   };
+
+  // Handedness first: it decides which side every other touch control is on.
+  const handWrap = document.createElement('div');
+  handWrap.className = 'segmented';
+  const hands: ReadonlyArray<{ id: Handedness; label: string }> = [
+    { id: 'left', label: 'Left' },
+    { id: 'right', label: 'Right' },
+  ];
+  const handButtons = hands.map(({ id, label }) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = label;
+    b.title = `Stick under the ${id} thumb, actions on the other side`;
+    b.addEventListener('click', () => {
+      settings.handedness = id;
+      syncHand();
+      commit();
+    });
+    handWrap.append(b);
+    return { id, el: b };
+  });
+  const syncHand = (): void => {
+    for (const { id, el } of handButtons) {
+      const on = settings.handedness === id;
+      el.classList.toggle('active', on);
+      el.setAttribute('aria-pressed', String(on));
+    }
+  };
+  syncHand();
+  addRow('Stick hand', handWrap);
 
   // Control scheme.
   const schemeWrap = document.createElement('div');

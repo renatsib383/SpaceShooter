@@ -60,15 +60,6 @@ export interface VirtualJoystick extends InputDevice {
   readonly value: Vec2;
 }
 
-export interface ActionButtonConfig {
-  /** Center as fractions of the viewport. */
-  cx: number;
-  cy: number;
-  /** Radius in CSS pixels. */
-  r: number;
-  label: string;
-}
-
 interface Size {
   width: number;
   height: number;

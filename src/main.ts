@@ -5,6 +5,7 @@ import { createShip, defaultShipTuning, updateShip } from './game/ship';
 import { createStarfield, drawStarfield } from './game/starfield';
 import { createGamepadDevice } from './input/gamepad';
 import { createInputManager } from './input/input-manager';
+import { applyHandedness } from './input/layout';
 import { createKeyboard } from './input/keyboard';
 import { createTouchButtons } from './input/touch-buttons';
 import { createVirtualJoystick, defaultJoystickConfig } from './input/virtual-joystick';
@@ -26,7 +27,8 @@ const getSize = (): { width: number; height: number } => ({
 
 const settings: TunableSettings = loadSettings({
   ship: { ...defaultShipTuning },
-  stick: { ...defaultJoystickConfig },
+  stick: { ...defaultJoystickConfig, zone: { ...defaultJoystickConfig.zone }, anchor: { ...defaultJoystickConfig.anchor } },
+  handedness: 'right',
   showDebug: true,
 });
 
@@ -46,18 +48,30 @@ const ship = createShip(0, 0);
 const camera = createCamera(0, 0);
 const starfield = createStarfield();
 
-createTuningPanel(ui, settings, () => {
-  /* settings objects are mutated in place; nothing to re-wire */
-});
+const syncLayout = (): void => {
+  applyHandedness(settings.handedness, settings.stick, buttons.visuals);
+  hint.textContent = hintText();
+};
 
-installDevHook({ ship, camera, input, joystick, settings });
+createTuningPanel(ui, settings, syncLayout);
+
+installDevHook({ ship, camera, input, joystick, buttons, settings, applyLayout: syncLayout });
+
+const hintText = (): string => {
+  const steer = settings.handedness === 'right' ? 'right' : 'left';
+  const actions = settings.handedness === 'right' ? 'left' : 'right';
+  return (
+    `Touch the ${steer} half to steer · FIRE / BST on the ${actions}\n` +
+    'WASD or arrows + Space on desktop · gamepad supported'
+  );
+};
 
 const hint = document.createElement('div');
 hint.className = 'hint';
-hint.textContent =
-  'Touch the left half to steer · FIRE / BST on the right\nWASD or arrows + Space on desktop · gamepad supported';
 hint.style.whiteSpace = 'pre-line';
 ui.append(hint);
+
+syncLayout();
 
 // Fade the touch HUD in only once a touch has actually happened, so the
 // desktop view is not cluttered with controls nobody can use.
@@ -74,6 +88,7 @@ const loop = createLoop({
   update(dt) {
     time += dt;
     joystick.update();
+    buttons.update();
     const control = input.poll();
     updateShip(ship, control, settings.ship, dt);
     updateCamera(camera, ship, dt);
