@@ -47,8 +47,20 @@ npm run typecheck
 npm run build
 ```
 
-Open the dev server's Network URL on a phone on the same network to test the
-real thing. Browser-level checks live in [`e2e/`](./e2e/README.md).
+Vite prints two URLs. `Local` works only on the machine running it; `Network`
+is that machine's address on your LAN — open it on a phone joined to the same
+Wi-Fi to test the real thing. Browser-level checks live in
+[`e2e/`](./e2e/README.md).
+
+## Deployment
+
+Every push to the default branch builds and publishes to GitHub Pages via
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml), after
+typecheck and tests pass. That gives the game a plain URL to open on a phone,
+which beats hunting for a LAN address on networks that isolate clients.
+
+The build uses a relative `base`, so it works from a project Pages subpath
+(`/SpaceShooter/`) without further configuration.
 
 ## Controls
 
