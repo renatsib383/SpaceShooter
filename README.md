@@ -71,9 +71,10 @@ The build uses a relative `base`, so it works from a project Pages subpath
 
 | | |
 |---|---|
+| Actions | `ОГОНЬ` fires, `СТОП` brakes, `ФОРС` boosts. The brake cuts thrust and sheds speed in about a sixth of a second per halving, while leaving rotation at full rate — the point is to hold station and still be able to aim. |
 | Touch | The stick takes half the screen — left, middle or right, under `НАСТРОЙКИ` > `Стик`. `ОГОНЬ` and `ФОРС` go in a vertical column (`Столбец`), spread over the opposite half (`Сбоку`), or stacked in the middle (`Центр`), under `НАСТРОЙКИ` > `Кнопки`. Default: centre stick, left column. |
-| Keyboard | `WASD` or arrows to steer, `Space` to fire, `Shift` to boost. |
-| Gamepad | Left stick steers, right stick aims, `A`/`RT` fires, `LT` boosts. |
+| Keyboard | `WASD` or arrows to steer, `Space` to fire, `Shift` to boost, `B` or `Ctrl` to brake. Brake is deliberately not `S` or Down, which are a movement direction in every scheme. |
+| Gamepad | Left stick steers, right stick aims, `A`/`RT` fires, `LT` boosts, `B`/`LB` brakes. |
 
 Devices can be swapped mid-flight; whichever one is actively producing input
 wins, with no mode to toggle.

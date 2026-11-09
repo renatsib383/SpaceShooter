@@ -8,6 +8,7 @@ export interface KeyboardBindings {
   right: readonly string[];
   fire: readonly string[];
   boost: readonly string[];
+  brake: readonly string[];
 }
 
 export const defaultKeyboardBindings: KeyboardBindings = {
@@ -17,6 +18,8 @@ export const defaultKeyboardBindings: KeyboardBindings = {
   right: ['KeyD', 'ArrowRight'],
   fire: ['Space', 'KeyJ'],
   boost: ['ShiftLeft', 'ShiftRight'],
+  // Not S or Down: those are a movement direction in every scheme here.
+  brake: ['KeyB', 'ControlLeft'],
 };
 
 /**
@@ -52,6 +55,7 @@ export function createKeyboard(
       const y = (any(bindings.down) ? 1 : 0) - (any(bindings.up) ? 1 : 0);
       if (any(bindings.fire)) out.fire = true;
       if (any(bindings.boost)) out.boost = true;
+      if (any(bindings.brake)) out.brake = true;
       if (x === 0 && y === 0) return;
       out.move.x = x;
       out.move.y = y;

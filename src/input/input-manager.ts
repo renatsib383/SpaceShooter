@@ -26,6 +26,7 @@ export function createInputManager(devices: readonly InputDevice[]): InputManage
       state.aim = null;
       state.fire = false;
       state.boost = false;
+      state.brake = false;
       state.source = 'none';
       for (const device of devices) device.sample(state);
       return state;

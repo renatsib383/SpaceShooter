@@ -145,8 +145,8 @@ function check(name, pass, detail) {
     });
     c.dispatchEvent(mk('pointerdown', 11, x, y));
     c.dispatchEvent(mk('pointermove', 11, x, y - 60));
-    // Column layout puts FIRE at 0.15 / 0.78 of the viewport.
-    c.dispatchEvent(mk('pointerdown', 12, vw * 0.15, vh * 0.78));
+    // Column layout puts FIRE at 0.15 / 0.82 of the viewport.
+    c.dispatchEvent(mk('pointerdown', 12, vw * 0.15, vh * 0.82));
   }, [ox, oy, vp.width, vp.height]);
   await page.waitForTimeout(300);
 
@@ -469,8 +469,9 @@ function check(name, pass, detail) {
   // propagation, so presence detection must not depend on listener order. ----
   for (const [label, spot] of [
     ['empty space', [0.7, 0.3]],
-    ['the FIRE button', [0.15, 0.78]],
-    ['the BST button', [0.15, 0.6]],
+    ['the FIRE button', [0.15, 0.82]],
+    ['the BRAKE button', [0.15, 0.655]],
+    ['the BOOST button', [0.15, 0.49]],
   ]) {
     const fresh = await ctx.newPage();
     await fresh.goto(URL, { waitUntil: 'load' });
@@ -496,6 +497,66 @@ function check(name, pass, detail) {
     );
     await fresh.close();
   }
+
+  // ---- The brake must stop the ship while leaving steering alive. ----
+  await page.evaluate(() => {
+    const S = window.__sandbox;
+    S.settings.stickSide = 'center';
+    S.settings.buttonPlacement = 'column';
+    S.applyLayout();
+    S.ship.vel.x = 600;
+    S.ship.vel.y = 0;
+  });
+  const brakeSpot = await page.evaluate(() => {
+    const b = window.__sandbox.buttons.visuals.find((v) => v.id === 'brake');
+    return { x: b.center.x, y: b.center.y };
+  });
+
+  const speedBefore = await page.evaluate(() =>
+    Math.hypot(window.__sandbox.ship.vel.x, window.__sandbox.ship.vel.y));
+
+  await page.evaluate(([x, y]) => {
+    const c = document.querySelector('#stage');
+    const mk = (t, id, cx, cy) => new PointerEvent(t, { pointerId: id,
+      pointerType: 'touch', isPrimary: id === 51, clientX: cx, clientY: cy,
+      bubbles: true, cancelable: true });
+    c.dispatchEvent(mk('pointerdown', 51, x, y));
+    // Second thumb steers while the brake is held.
+    const o = window.__sandbox.joystick.visual.origin;
+    c.dispatchEvent(mk('pointerdown', 52, o.x, o.y));
+    c.dispatchEvent(mk('pointermove', 52, o.x + 60, o.y));
+  }, [brakeSpot.x, brakeSpot.y]);
+
+  const angleBefore = await page.evaluate(() => window.__sandbox.ship.angle);
+  await page.waitForTimeout(1100);
+  const braked = await page.evaluate(() => ({
+    brake: window.__sandbox.input.state.brake,
+    speed: Math.hypot(window.__sandbox.ship.vel.x, window.__sandbox.ship.vel.y),
+    angle: window.__sandbox.ship.angle,
+    throttle: window.__sandbox.ship.throttle,
+    stick: Math.hypot(window.__sandbox.input.state.move.x, window.__sandbox.input.state.move.y),
+  }));
+  await page.evaluate(() => {
+    const c = document.querySelector('#stage');
+    for (const id of [51, 52]) {
+      c.dispatchEvent(new PointerEvent('pointerup', { pointerId: id,
+        pointerType: 'touch', clientX: 0, clientY: 0, bubbles: true }));
+    }
+  });
+
+  check('brake button registers', braked.brake === true, JSON.stringify(braked));
+  check(
+    'brake stops the ship',
+    braked.speed < speedBefore * 0.05,
+    `${speedBefore.toFixed(0)} -> ${braked.speed.toFixed(1)} px/s`,
+  );
+  check('no thrust while braking', braked.throttle === 0, JSON.stringify(braked));
+  check(
+    'steering still works while braking',
+    braked.stick > 0.1 && braked.angle !== angleBefore,
+    JSON.stringify(braked),
+  );
+  await page.screenshot({ path: `${SHOT}/07-braking.png`, scale: 'css' });
 
   check('no runtime errors over the whole run', errors.length === 0, errors.join(' | '));
 

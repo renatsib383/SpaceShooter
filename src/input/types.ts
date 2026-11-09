@@ -15,6 +15,8 @@ export interface ControlState {
   aim: Vec2 | null;
   fire: boolean;
   boost: boolean;
+  /** Hold to kill velocity and hold station while still able to aim. */
+  brake: boolean;
   /** Which device produced `move` this step. */
   source: InputSource;
 }
@@ -26,6 +28,7 @@ export function createControlState(): ControlState {
     aim: null,
     fire: false,
     boost: false,
+    brake: false,
     source: 'none',
   };
 }

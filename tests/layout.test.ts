@@ -125,14 +125,42 @@ describe('applyTouchLayout', () => {
     expect(left.map((b) => [b.cx, b.cy])).toEqual(right.map((b) => [b.cx, b.cy]));
   });
 
-  it('does not stack centred buttons on top of each other', () => {
-    const stick = freshStick();
-    const buttons = freshButtons();
-    applyTouchLayout('right', 'center', stick, buttons);
-    const [a, b] = buttons;
-    // Vertical gap must exceed the two radii, or the hit areas overlap.
-    const gap = Math.abs(a!.cy - b!.cy);
-    expect(gap).toBeGreaterThan(0.1);
+  it('never overlaps two button hit areas, in any placement', () => {
+    // Checked in pixels on a tall phone, since the radii are in pixels while
+    // the positions are fractions.
+    const W = 390;
+    const H = 664;
+    for (const side of ['left', 'center', 'right'] as const) {
+      for (const placement of ['side', 'center', 'column'] as const) {
+        const stick = freshStick();
+        const buttons = freshButtons();
+        applyTouchLayout(side, placement, stick, buttons);
+        for (let i = 0; i < buttons.length; i++) {
+          for (let j = i + 1; j < buttons.length; j++) {
+            const a = buttons[i]!;
+            const b = buttons[j]!;
+            const distance = Math.hypot((a.cx - b.cx) * W, (a.cy - b.cy) * H);
+            expect(distance).toBeGreaterThan(a.r + b.r);
+          }
+        }
+      }
+    }
+  });
+
+  it('keeps every button fully on screen', () => {
+    const W = 390;
+    const H = 664;
+    for (const placement of ['side', 'center', 'column'] as const) {
+      const stick = freshStick();
+      const buttons = freshButtons();
+      applyTouchLayout('center', placement, stick, buttons);
+      for (const b of buttons) {
+        expect(b.cx * W - b.r).toBeGreaterThanOrEqual(0);
+        expect(b.cx * W + b.r).toBeLessThanOrEqual(W);
+        expect(b.cy * H - b.r).toBeGreaterThanOrEqual(0);
+        expect(b.cy * H + b.r).toBeLessThanOrEqual(H);
+      }
+    }
   });
 
   it('still moves the stick zone when buttons are centred', () => {
@@ -203,12 +231,14 @@ describe('applyTouchLayout', () => {
     }
   });
 
-  it('keeps column buttons far enough apart not to overlap', () => {
+  it('orders the column with FIRE lowest, under the resting thumb', () => {
     const stick = freshStick();
     const buttons = freshButtons();
     applyTouchLayout('center', 'column', stick, buttons);
-    const [a, b] = buttons;
-    expect(Math.abs(a!.cy - b!.cy)).toBeGreaterThan(0.1);
+    const fire = buttons.find((b) => b.id === 'fire')!;
+    for (const other of buttons) {
+      if (other.id !== 'fire') expect(fire.cy).toBeGreaterThan(other.cy);
+    }
   });
 
   it('is idempotent for the centre stick with a column', () => {

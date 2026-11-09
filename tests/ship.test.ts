@@ -148,4 +148,90 @@ describe('updateShip', () => {
     expect(ship.prevPos.x).toBeLessThan(ship.pos.x);
     expect(ship.prevPos.x).toBeGreaterThan(0);
   });
+
+  it('sheds speed far faster while braking than while coasting', () => {
+    const launch = (): ReturnType<typeof createShip> => {
+      const s = createShip();
+      s.vel.x = 500;
+      return s;
+    };
+    const coasting = launch();
+    const braking = launch();
+    const dt = 1 / 120;
+    for (let i = 0; i < 60; i++) {
+      updateShip(coasting, control(0, 0), direct, dt);
+      updateShip(braking, { ...control(0, 0), brake: true }, direct, dt);
+    }
+    expect(speedOf(braking)).toBeLessThan(speedOf(coasting) * 0.2);
+  });
+
+  it('brings the ship to a practical standstill within a second of braking', () => {
+    const ship = createShip();
+    ship.vel.x = defaultShipTuning.maxSpeed;
+    const braking = { ...control(0, 0), brake: true };
+    for (let i = 0; i < 120; i++) updateShip(ship, braking, direct, 1 / 120);
+    // Exponential decay never reaches exactly zero, so the bar is residual
+    // drift small enough to shoot from: under 2% of top speed, a few pixels
+    // per second.
+    expect(speedOf(ship)).toBeLessThan(defaultShipTuning.maxSpeed * 0.02);
+  });
+
+  it('is most of the way stopped within half a second', () => {
+    const ship = createShip();
+    ship.vel.x = defaultShipTuning.maxSpeed;
+    const braking = { ...control(0, 0), brake: true };
+    for (let i = 0; i < 60; i++) updateShip(ship, braking, direct, 1 / 120);
+    expect(speedOf(ship)).toBeLessThan(defaultShipTuning.maxSpeed * 0.15);
+  });
+
+  it('still turns while braking, so you can aim from a standstill', () => {
+    for (const scheme of ['direct', 'heading', 'tank'] as const) {
+      const tuning: ShipTuning = { ...defaultShipTuning, scheme };
+      const ship = createShip();
+      const start = ship.angle;
+      const braking = { ...control(scheme === 'tank' ? 1 : 1, 0), brake: true };
+      for (let i = 0; i < 30; i++) updateShip(ship, braking, tuning, 1 / 120);
+      expect(ship.angle).not.toBe(start);
+    }
+  });
+
+  it('applies no thrust while braking, whatever the stick says', () => {
+    for (const scheme of ['direct', 'heading', 'tank'] as const) {
+      const tuning: ShipTuning = { ...defaultShipTuning, scheme };
+      const ship = createShip();
+      const braking = { ...control(0, -1), brake: true };
+      for (let i = 0; i < 120; i++) updateShip(ship, braking, tuning, 1 / 120);
+      expect(ship.throttle).toBe(0);
+      expect(speedOf(ship)).toBeLessThan(1);
+    }
+  });
+
+  it('cannot be outrun by holding boost', () => {
+    const ship = createShip();
+    ship.vel.x = 400;
+    const braking = { ...control(1, 0, true), brake: true };
+    for (let i = 0; i < 120; i++) updateShip(ship, braking, direct, 1 / 120);
+    expect(speedOf(ship)).toBeLessThan(defaultShipTuning.maxSpeed * 0.02);
+  });
+
+  it('resumes normal flight the moment the brake is released', () => {
+    const ship = createShip();
+    const braking = { ...control(1, 0), brake: true };
+    for (let i = 0; i < 60; i++) updateShip(ship, braking, direct, 1 / 120);
+    expect(speedOf(ship)).toBeLessThan(1);
+
+    for (let i = 0; i < 60; i++) updateShip(ship, control(1, 0), direct, 1 / 120);
+    expect(speedOf(ship)).toBeGreaterThan(100);
+  });
+
+  it('brakes identically at any timestep', () => {
+    const at = (dt: number): number => {
+      const s = createShip();
+      s.vel.x = 500;
+      const braking = { ...control(0, 0), brake: true };
+      for (let i = 0; i < steps(0.5, dt); i++) updateShip(s, braking, direct, dt);
+      return speedOf(s);
+    };
+    expect(at(1 / 240)).toBeCloseTo(at(1 / 30), 4);
+  });
 });

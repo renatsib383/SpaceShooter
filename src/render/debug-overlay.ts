@@ -44,7 +44,10 @@ export function drawDebugOverlay(
     row(d.heading, ui.units.degrees((ship.angle * 180) / Math.PI)),
     row(
       d.throttle,
-      `${ship.throttle.toFixed(2)}${control.boost ? '  ' + d.boostOn : ''}${control.fire ? '  ' + d.fireOn : ''}`,
+      `${ship.throttle.toFixed(2)}` +
+        `${control.boost ? '  ' + d.boostOn : ''}` +
+        `${control.brake ? '  ' + d.brakeOn : ''}` +
+        `${control.fire ? '  ' + d.fireOn : ''}`,
     ),
   ];
 

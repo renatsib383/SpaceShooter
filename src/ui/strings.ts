@@ -16,6 +16,7 @@ export const ui = {
   buttons: {
     fire: 'ОГОНЬ',
     boost: 'ФОРС',
+    brake: 'СТОП',
   },
 
   hud: {
@@ -36,6 +37,7 @@ export const ui = {
     throttle: 'тяга',
     fps: 'кадр/с',
     boostOn: 'ФОРСАЖ',
+    brakeOn: 'ТОРМОЗ',
     fireOn: 'ОГОНЬ',
   },
 
@@ -104,6 +106,7 @@ export const ui = {
     thrust: 'Тяга',
     maxSpeed: 'Макс. скорость',
     drag: 'Торможение',
+    brakeStrength: 'Сила тормоза',
     turnRate: 'Скорость поворота',
     offAxis: 'Тяга вне курса',
     homing: 'Самонаведение',
@@ -143,7 +146,7 @@ export const ui = {
       right: 'справа',
     },
     line: (steer: string, actions: string): string =>
-      `Нажимайте ${steer}, чтобы управлять · ОГОНЬ / ФОРС ${actions}\n` +
+      `Нажимайте ${steer}, чтобы управлять · ОГОНЬ / СТОП / ФОРС ${actions}\n` +
       'На компьютере: WASD или стрелки + пробел · геймпад поддерживается',
   },
 } as const;

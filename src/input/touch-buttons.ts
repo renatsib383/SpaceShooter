@@ -3,7 +3,7 @@ import { ui } from '../ui/strings';
 import type { ControlState, InputDevice } from './types';
 
 export interface TouchButtonSpec {
-  id: 'fire' | 'boost';
+  id: 'fire' | 'boost' | 'brake';
   label: string;
   /** Center as fractions of the viewport. */
   cx: number;
@@ -14,6 +14,7 @@ export interface TouchButtonSpec {
 
 export const defaultTouchButtons: readonly TouchButtonSpec[] = [
   { id: 'fire', label: ui.buttons.fire, cx: 0.86, cy: 0.74, r: 42 },
+  { id: 'brake', label: ui.buttons.brake, cx: 0.86, cy: 0.52, r: 32 },
   { id: 'boost', label: ui.buttons.boost, cx: 0.7, cy: 0.86, r: 32 },
 ];
 
@@ -131,6 +132,7 @@ export function createTouchButtons(
       const active = new Set(held.values());
       if (active.has('fire')) out.fire = true;
       if (active.has('boost')) out.boost = true;
+      if (active.has('brake')) out.brake = true;
     },
     dispose(): void {
       target.removeEventListener('pointerdown', onPointerDown, { capture: true });

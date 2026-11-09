@@ -34,6 +34,12 @@ export interface ShipTuning {
    * Large values feel like vacuum; small values feel like an atmosphere.
    */
   dragHalfLife: number;
+  /**
+   * Seconds for speed to halve while the brake is held. Much shorter than
+   * `dragHalfLife`: the brake exists so you can stop and shoot, and a brake
+   * that merely coasts a bit harder does not achieve that.
+   */
+  brakeHalfLife: number;
   /** Maximum rotation rate, radians/s. */
   turnRate: number;
   /**
@@ -49,6 +55,7 @@ export const defaultShipTuning: ShipTuning = {
   boostMultiplier: 1.8,
   maxSpeed: 620,
   dragHalfLife: 1.4,
+  brakeHalfLife: 0.16,
   turnRate: TAU * 1.15,
   offAxisThrust: 0.35,
 };
@@ -93,45 +100,55 @@ export function updateShip(ship: Ship, control: ControlState, t: ShipTuning, dt:
   const magnitude = Math.min(Math.hypot(stickX, stickY), 1);
   const power = t.thrust * (control.boost ? t.boostMultiplier : 1);
 
+  // Braking cuts thrust but never rotation: the whole point is to hold station
+  // and still be able to aim, so steering has to keep working at full rate.
+  const braking = control.brake;
+
   let ax = 0;
   let ay = 0;
   let throttle = 0;
 
   if (t.scheme === 'direct') {
     if (magnitude > 0) {
-      throttle = magnitude;
-      ax = stickX * power;
-      ay = stickY * power;
       ship.angle = rotateToward(ship.angle, Math.atan2(stickY, stickX), t.turnRate * dt);
+      if (!braking) {
+        throttle = magnitude;
+        ax = stickX * power;
+        ay = stickY * power;
+      }
     }
   } else if (t.scheme === 'heading') {
     if (magnitude > 0) {
       const target = Math.atan2(stickY, stickX);
       ship.angle = rotateToward(ship.angle, target, t.turnRate * dt);
-      // Alignment: 1 when the nose is on target, 0 when 90 degrees off or worse.
-      const alignment = Math.max(
-        0,
-        Math.cos(target - ship.angle),
-      );
-      const gate = t.offAxisThrust + (1 - t.offAxisThrust) * alignment;
-      throttle = magnitude * gate;
-      ax = Math.cos(ship.angle) * power * throttle;
-      ay = Math.sin(ship.angle) * power * throttle;
+      if (!braking) {
+        // Alignment: 1 when the nose is on target, 0 when 90 degrees off or worse.
+        const alignment = Math.max(
+          0,
+          Math.cos(target - ship.angle),
+        );
+        const gate = t.offAxisThrust + (1 - t.offAxisThrust) * alignment;
+        throttle = magnitude * gate;
+        ax = Math.cos(ship.angle) * power * throttle;
+        ay = Math.sin(ship.angle) * power * throttle;
+      }
     }
   } else {
     // tank
     ship.angle += stickX * t.turnRate * dt;
-    // Pushing the stick up (negative Y on screen) means forward.
-    throttle = Math.max(0, -stickY);
-    ax = Math.cos(ship.angle) * power * throttle;
-    ay = Math.sin(ship.angle) * power * throttle;
+    if (!braking) {
+      // Pushing the stick up (negative Y on screen) means forward.
+      throttle = Math.max(0, -stickY);
+      ax = Math.cos(ship.angle) * power * throttle;
+      ay = Math.sin(ship.angle) * power * throttle;
+    }
   }
 
   ship.throttle = throttle;
   ship.vel.x += ax * dt;
   ship.vel.y += ay * dt;
 
-  const remaining = decay(t.dragHalfLife, dt);
+  const remaining = decay(braking ? t.brakeHalfLife : t.dragHalfLife, dt);
   ship.vel.x *= remaining;
   ship.vel.y *= remaining;
 

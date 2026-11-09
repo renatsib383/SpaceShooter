@@ -51,6 +51,8 @@ export function createGamepadDevice(options: GamepadOptions = {}): InputDevice {
       // Standard mapping: 0 = south face button, 7 = right trigger, 6 = left trigger.
       if (pad.buttons[0]?.pressed || pad.buttons[7]?.pressed) out.fire = true;
       if (pad.buttons[6]?.pressed) out.boost = true;
+      // 1 = east face button, 4 = left shoulder.
+      if (pad.buttons[1]?.pressed || pad.buttons[4]?.pressed) out.brake = true;
     },
     dispose(): void {
       /* polled; nothing to unbind */

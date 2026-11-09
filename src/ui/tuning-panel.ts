@@ -69,6 +69,19 @@ const fields: readonly NumericField[] = [
     format: (v) => ui.units.seconds(v),
   },
   {
+    label: ui.panel.brakeStrength,
+    min: 0.05,
+    max: 1.5,
+    step: 0.05,
+    get: (s) => s.ship.brakeHalfLife,
+    set: (s, v) => {
+      s.ship.brakeHalfLife = v;
+    },
+    // Lower half-life is a stronger brake, so the value is shown as the time
+    // it takes rather than as an abstract "strength".
+    format: (v) => ui.units.seconds(v),
+  },
+  {
     label: ui.panel.turnRate,
     min: 1,
     max: 20,
