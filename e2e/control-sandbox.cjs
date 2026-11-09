@@ -392,13 +392,13 @@ function check(name, pass, detail) {
     document.querySelector('#stage').dispatchEvent(
       new PointerEvent('pointerup', { pointerId: 21, pointerType: 'touch', clientX: 0, clientY: 0, bubbles: true }));
   });
-  await page.getByRole('button', { name: 'TUNE' }).click();
+  await page.getByRole('button', { name: 'НАСТРОЙКИ', exact: true }).click();
   await page.waitForTimeout(200);
   const panelOpen = await page.locator('.panel-body').isVisible();
   check('tuning panel opens', panelOpen);
   await page.screenshot({ path: `${SHOT}/04-tuning-panel.png`, scale: 'css' });
 
-  await page.getByRole('button', { name: 'Tank', exact: true }).click();
+  await page.getByRole('button', { name: 'Танковая', exact: true }).click();
   await page.waitForTimeout(150);
   const scheme = await page.evaluate(() => window.__sandbox.settings.ship.scheme);
   check('scheme switch applies live', scheme === 'tank', scheme);
@@ -418,7 +418,7 @@ function check(name, pass, detail) {
   check(
     'segmented buttons expose their own name and pressed state',
     named && pressedIsBoolean && exactlyOnePressedPerGroup &&
-      names.find((n) => n.text === 'Tank').pressed === 'true',
+      names.find((n) => n.text === 'Танковая').pressed === 'true',
     JSON.stringify(names),
   );
 
@@ -427,7 +427,7 @@ function check(name, pass, detail) {
   check('tuning persists to localStorage', persisted === 'tank', persisted);
 
   // ---- Rotation to landscape keeps everything sane. ----
-  await page.getByRole('button', { name: 'TUNE' }).click();
+  await page.getByRole('button', { name: 'НАСТРОЙКИ', exact: true }).click();
   await page.setViewportSize({ width: vp.height, height: vp.width });
   await page.waitForTimeout(400);
   const afterRotate = await page.evaluate(() => {

@@ -22,11 +22,12 @@ import { applyWorldTransform, type ViewTransform } from './render/view-transform
 import { drawShip, playerHull } from './render/ship-renderer';
 import { drawJoystick, drawTouchButtons } from './render/touch-hud';
 import { installDevHook } from './dev-hook';
+import { ui } from './ui/strings';
 import { createTuningPanel, loadSettings, type TunableSettings } from './ui/tuning-panel';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#stage');
-const ui = document.querySelector<HTMLDivElement>('#ui');
-if (!canvas || !ui) throw new Error('missing #stage or #ui in the document');
+const uiLayer = document.querySelector<HTMLDivElement>('#ui');
+if (!canvas || !uiLayer) throw new Error('missing #stage or #ui in the document');
 
 const view = createViewport(canvas);
 const getSize = (): { width: number; height: number } => ({
@@ -72,7 +73,7 @@ const syncLayout = (): void => {
   hint.textContent = hintText();
 };
 
-createTuningPanel(ui, settings, syncLayout);
+createTuningPanel(uiLayer, settings, syncLayout);
 
 installDevHook({
   world,
@@ -87,23 +88,18 @@ installDevHook({
 });
 
 const hintText = (): string => {
-  const steer =
-    settings.stickSide === 'center' ? 'middle' : `${settings.stickSide} half`;
+  const steer = ui.hint.steerArea[settings.stickSide];
   // Where the buttons ended up is derived from the layout, not guessed, so the
   // hint cannot drift out of step with it.
   const fire = buttons.visuals.find((b) => b.id === 'fire');
-  const actions =
-    !fire ? 'screen' : fire.cx < 0.4 ? 'left' : fire.cx > 0.6 ? 'right' : 'middle';
-  return (
-    `Touch the ${steer} to steer · FIRE / BST on the ${actions}\n` +
-    'WASD or arrows + Space on desktop · gamepad supported'
-  );
+  const side = !fire ? 'center' : fire.cx < 0.4 ? 'left' : fire.cx > 0.6 ? 'right' : 'center';
+  return ui.hint.line(steer, ui.hint.actionsAt[side]);
 };
 
 const hint = document.createElement('div');
 hint.className = 'hint';
 hint.style.whiteSpace = 'pre-line';
-ui.append(hint);
+uiLayer.append(hint);
 
 syncLayout();
 

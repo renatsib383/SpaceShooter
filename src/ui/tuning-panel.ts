@@ -3,6 +3,7 @@ import type { ControlScheme, ShipTuning } from '../game/ship';
 import { DEFAULT_REST_HEIGHTS } from '../input/layout';
 import type { ButtonPlacement, StickSide } from '../input/layout';
 import type { JoystickConfig, StickPlacement } from '../input/virtual-joystick';
+import { ui } from './strings';
 
 export interface TunableSettings {
   ship: ShipTuning;
@@ -35,7 +36,7 @@ interface NumericField {
 
 const fields: readonly NumericField[] = [
   {
-    label: 'Thrust',
+    label: ui.panel.thrust,
     min: 200,
     max: 2600,
     step: 25,
@@ -45,7 +46,7 @@ const fields: readonly NumericField[] = [
     },
   },
   {
-    label: 'Max speed',
+    label: ui.panel.maxSpeed,
     min: 120,
     max: 1600,
     step: 20,
@@ -55,7 +56,7 @@ const fields: readonly NumericField[] = [
     },
   },
   {
-    label: 'Drag half-life',
+    label: ui.panel.drag,
     min: 0.1,
     max: 6,
     step: 0.05,
@@ -63,10 +64,10 @@ const fields: readonly NumericField[] = [
     set: (s, v) => {
       s.ship.dragHalfLife = v;
     },
-    format: (v) => `${v.toFixed(2)}s`,
+    format: (v) => ui.units.seconds(v),
   },
   {
-    label: 'Turn rate',
+    label: ui.panel.turnRate,
     min: 1,
     max: 20,
     step: 0.25,
@@ -74,10 +75,10 @@ const fields: readonly NumericField[] = [
     set: (s, v) => {
       s.ship.turnRate = v;
     },
-    format: (v) => `${(v / (Math.PI * 2)).toFixed(2)} rev/s`,
+    format: (v) => ui.units.turnsPerSecond(v),
   },
   {
-    label: 'Off-axis thrust',
+    label: ui.panel.offAxis,
     min: 0,
     max: 1,
     step: 0.05,
@@ -88,7 +89,7 @@ const fields: readonly NumericField[] = [
     format: (v) => v.toFixed(2),
   },
   {
-    label: 'Zoom at speed',
+    label: ui.panel.zoomAtSpeed,
     min: 0.3,
     max: 1,
     step: 0.02,
@@ -96,10 +97,10 @@ const fields: readonly NumericField[] = [
     set: (s, v) => {
       s.camera.zoomAtSpeed = v;
     },
-    format: (v) => `${v.toFixed(2)}x`,
+    format: (v) => ui.units.times(v),
   },
   {
-    label: 'Zoom ease',
+    label: ui.panel.zoomEase,
     min: 0.05,
     max: 2,
     step: 0.05,
@@ -107,10 +108,10 @@ const fields: readonly NumericField[] = [
     set: (s, v) => {
       s.camera.zoomHalfLife = v;
     },
-    format: (v) => `${v.toFixed(2)}s`,
+    format: (v) => ui.units.seconds(v),
   },
   {
-    label: 'Look ahead',
+    label: ui.panel.lookAhead,
     min: 0,
     max: 1,
     step: 0.05,
@@ -118,10 +119,10 @@ const fields: readonly NumericField[] = [
     set: (s, v) => {
       s.camera.lookAhead = v;
     },
-    format: (v) => `${v.toFixed(2)}s`,
+    format: (v) => ui.units.seconds(v),
   },
   {
-    label: 'Stick radius',
+    label: ui.panel.stickRadius,
     min: 32,
     max: 140,
     step: 2,
@@ -129,10 +130,10 @@ const fields: readonly NumericField[] = [
     set: (s, v) => {
       s.stick.radius = v;
     },
-    format: (v) => `${v.toFixed(0)}px`,
+    format: (v) => ui.units.pixels(v),
   },
   {
-    label: 'Stick height',
+    label: ui.panel.stickHeight,
     min: 0.35,
     max: 0.92,
     step: 0.01,
@@ -140,10 +141,10 @@ const fields: readonly NumericField[] = [
     set: (s, v) => {
       s.stickHeight[s.stickSide] = v;
     },
-    format: (v) => `${(v * 100).toFixed(0)}% down`,
+    format: (v) => ui.units.percent(v),
   },
   {
-    label: 'Stick dead zone',
+    label: ui.panel.stickDeadZone,
     min: 0,
     max: 0.5,
     step: 0.01,
@@ -151,7 +152,7 @@ const fields: readonly NumericField[] = [
     set: (s, v) => {
       s.stick.deadZone = v;
     },
-    format: (v) => `${(v * 100).toFixed(0)}%`,
+    format: (v) => ui.units.percent(v),
   },
 ];
 
@@ -210,7 +211,7 @@ export function createTuningPanel(
   const toggle = document.createElement('button');
   toggle.className = 'panel-toggle';
   toggle.type = 'button';
-  toggle.textContent = 'TUNE';
+  toggle.textContent = ui.panel.toggle;
 
   const body = document.createElement('div');
   body.className = 'panel-body';
@@ -258,16 +259,14 @@ export function createTuningPanel(
   // Stick side first: it decides where every other touch control sits.
   const handWrap = document.createElement('div');
   handWrap.className = 'segmented';
-  const sides: ReadonlyArray<{ id: StickSide; label: string; hint: string }> = [
-    { id: 'left', label: 'Left', hint: 'Stick on the left half' },
-    { id: 'center', label: 'Center', hint: 'Stick on the middle half' },
-    { id: 'right', label: 'Right', hint: 'Stick on the right half' },
+  const sides: ReadonlyArray<{ id: StickSide }> = [
+    { id: 'left' }, { id: 'center' }, { id: 'right' },
   ];
-  const handButtons = sides.map(({ id, label, hint }) => {
+  const handButtons = sides.map(({ id }) => {
     const b = document.createElement('button');
     b.type = 'button';
-    b.textContent = label;
-    b.title = hint;
+    b.textContent = ui.panel.stickSideOptions[id];
+    b.title = ui.panel.stickSideHints[id];
     b.addEventListener('click', () => {
       settings.stickSide = id;
       syncHand();
@@ -285,21 +284,19 @@ export function createTuningPanel(
     }
   };
   syncHand();
-  addRow('Stick side', handWrap);
+  addRow(ui.panel.stickSide, handWrap);
 
   // Where the action buttons live.
   const placeWrap = document.createElement('div');
   placeWrap.className = 'segmented';
-  const places: ReadonlyArray<{ id: ButtonPlacement; label: string; hint: string }> = [
-    { id: 'column', label: 'Column', hint: 'Buttons in a vertical column at the edge' },
-    { id: 'side', label: 'Side', hint: 'Buttons spread over the half opposite the stick' },
-    { id: 'center', label: 'Center', hint: 'Buttons stacked in the middle' },
+  const places: ReadonlyArray<{ id: ButtonPlacement }> = [
+    { id: 'column' }, { id: 'side' }, { id: 'center' },
   ];
-  const placeButtons = places.map(({ id, label, hint }) => {
+  const placeButtons = places.map(({ id }) => {
     const b = document.createElement('button');
     b.type = 'button';
-    b.textContent = label;
-    b.title = hint;
+    b.textContent = ui.panel.buttonsOptions[id];
+    b.title = ui.panel.buttonsHints[id];
     b.addEventListener('click', () => {
       settings.buttonPlacement = id;
       syncPlace();
@@ -316,21 +313,19 @@ export function createTuningPanel(
     }
   };
   syncPlace();
-  addRow('Buttons', placeWrap);
+  addRow(ui.panel.buttons, placeWrap);
 
   // Control scheme.
   const schemeWrap = document.createElement('div');
   schemeWrap.className = 'segmented';
-  const schemes: ReadonlyArray<{ id: ControlScheme; label: string; hint: string }> = [
-    { id: 'direct', label: 'Direct', hint: 'Stick direction = thrust direction' },
-    { id: 'heading', label: 'Heading', hint: 'Stick sets heading, ship turns to it' },
-    { id: 'tank', label: 'Tank', hint: 'X rotates, up throttles' },
+  const schemes: ReadonlyArray<{ id: ControlScheme }> = [
+    { id: 'direct' }, { id: 'heading' }, { id: 'tank' },
   ];
-  const schemeButtons = schemes.map(({ id, label, hint }) => {
+  const schemeButtons = schemes.map(({ id }) => {
     const b = document.createElement('button');
     b.type = 'button';
-    b.textContent = label;
-    b.title = hint;
+    b.textContent = ui.panel.schemeOptions[id];
+    b.title = ui.panel.schemeHints[id];
     b.addEventListener('click', () => {
       settings.ship.scheme = id;
       syncScheme();
@@ -347,19 +342,18 @@ export function createTuningPanel(
     }
   };
   syncScheme();
-  addRow('Scheme', schemeWrap);
+  addRow(ui.panel.scheme, schemeWrap);
 
   // Stick placement.
   const placementWrap = document.createElement('div');
   placementWrap.className = 'segmented';
-  const placements: ReadonlyArray<{ id: StickPlacement; label: string }> = [
-    { id: 'dynamic', label: 'Dynamic' },
-    { id: 'fixed', label: 'Fixed' },
+  const placements: ReadonlyArray<{ id: StickPlacement }> = [
+    { id: 'dynamic' }, { id: 'fixed' },
   ];
-  const placementButtons = placements.map(({ id, label }) => {
+  const placementButtons = placements.map(({ id }) => {
     const b = document.createElement('button');
     b.type = 'button';
-    b.textContent = label;
+    b.textContent = ui.panel.placementOptions[id];
     b.addEventListener('click', () => {
       settings.stick.placement = id;
       syncPlacement();
@@ -376,7 +370,7 @@ export function createTuningPanel(
     }
   };
   syncPlacement();
-  addRow('Stick', placementWrap);
+  addRow(ui.panel.placement, placementWrap);
 
   // Recenter toggle.
   const recenter = document.createElement('input');
@@ -386,7 +380,7 @@ export function createTuningPanel(
     settings.stick.recenter = recenter.checked;
     commit();
   });
-  addRow('Recenter on drag', recenter);
+  addRow(ui.panel.recenter, recenter);
 
   // Numeric sliders.
   const refreshers: Array<() => void> = [];
@@ -431,12 +425,12 @@ export function createTuningPanel(
     settings.showDebug = debug.checked;
     commit();
   });
-  addRow('Debug overlay', debug);
+  addRow(ui.panel.debugOverlay, debug);
 
   const reset = document.createElement('button');
   reset.type = 'button';
   reset.className = 'reset';
-  reset.textContent = 'Reset to defaults';
+  reset.textContent = ui.panel.reset;
   reset.addEventListener('click', () => {
     try {
       localStorage.removeItem(STORAGE_KEY);

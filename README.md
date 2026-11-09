@@ -71,7 +71,7 @@ The build uses a relative `base`, so it works from a project Pages subpath
 
 | | |
 |---|---|
-| Touch | The stick takes half the screen — left, middle or right, under `TUNE` > `Stick side`. `FIRE` and `BST` go in a vertical `Column`, spread over the opposite half (`Side`), or stacked in the middle (`Center`), under `TUNE` > `Buttons`. Default: centre stick, left column. |
+| Touch | The stick takes half the screen — left, middle or right, under `НАСТРОЙКИ` > `Стик`. `ОГОНЬ` and `ФОРС` go in a vertical column (`Столбец`), spread over the opposite half (`Сбоку`), or stacked in the middle (`Центр`), under `НАСТРОЙКИ` > `Кнопки`. Default: centre stick, left column. |
 | Keyboard | `WASD` or arrows to steer, `Space` to fire, `Shift` to boost. |
 | Gamepad | Left stick steers, right stick aims, `A`/`RT` fires, `LT` boosts. |
 
@@ -119,8 +119,8 @@ undone by accident:
 - **Controls are drawn on the canvas.** No tap highlights, no text selection,
   and they animate with the scene instead of fighting the compositor.
 - **Dynamic placement by default.** The stick appears under the thumb rather
-  than demanding the thumb find it. `Fixed` is available for players who want
-  a consistent spot.
+  than demanding the thumb find it. `На месте` is available for players who
+  want a consistent spot.
 - **The stick and the buttons are placed together.** `Side` and `Column` always
   keep the buttons clear of the stick's zone, mirroring to the free side when
   the stick would otherwise sit on top of them — a left stick pushes the column
@@ -138,8 +138,8 @@ undone by accident:
   under a thumb already curled around the edge of the phone; a centred stick
   has to be reached across the palm, which only works near the bottom — and
   drawn any higher it covers the ship. Height is held per stick side and is
-  tunable (`TUNE` > `Stick height`), so tuning the centre never disturbs the
-  height set for a side stick.
+  tunable (`НАСТРОЙКИ` > `Высота стика`), so tuning the centre never disturbs
+  the height set for a side stick.
 - **The resting ring is clamped on screen.** Height and radius are tuned
   independently, so a large radius low down would otherwise draw a stick
   sliced off by the bottom edge.
@@ -150,6 +150,18 @@ undone by accident:
   misses a first touch that lands on a button and the whole HUD stays
   invisible. Each device reports its own truth instead, which cannot be
   broken by listener ordering.
+
+## Interface language
+
+The interface is Russian. Every player-facing string lives in
+[`src/ui/strings.ts`](src/ui/strings.ts) rather than inline in the renderers,
+so the whole interface can be read through in one file and a second language
+is a matter of swapping that object.
+
+Two details worth keeping: the hull bar starts after the *measured* width of
+its label rather than a fixed offset, and the debug overlay pads labels to the
+widest one — both were tuned to English word lengths and would have clipped
+otherwise. Code, comments and this document stay in English.
 
 ## Layout
 
@@ -183,7 +195,8 @@ would have drifted apart. Star *size* stays in screen pixels while star
 *positions* scale, or the far layers would vanish exactly when pulling back is
 meant to reveal more.
 
-Tunable live under `TUNE`: `Zoom at speed`, `Zoom ease`, `Look ahead`.
+Tunable live under `НАСТРОЙКИ`: `Отъезд на скорости`, `Плавность отъезда`,
+`Упреждение камеры`.
 
 ## Combat
 

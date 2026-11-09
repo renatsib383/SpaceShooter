@@ -1,4 +1,5 @@
 import type { Vec2 } from '../core/vec2';
+import { ui } from '../ui/strings';
 import type { ControlState, InputDevice } from './types';
 
 export interface TouchButtonSpec {
@@ -12,8 +13,8 @@ export interface TouchButtonSpec {
 }
 
 export const defaultTouchButtons: readonly TouchButtonSpec[] = [
-  { id: 'fire', label: 'FIRE', cx: 0.86, cy: 0.74, r: 42 },
-  { id: 'boost', label: 'BST', cx: 0.7, cy: 0.86, r: 32 },
+  { id: 'fire', label: ui.buttons.fire, cx: 0.86, cy: 0.74, r: 42 },
+  { id: 'boost', label: ui.buttons.boost, cx: 0.7, cy: 0.86, r: 32 },
 ];
 
 export interface TouchButtonVisual extends TouchButtonSpec {
