@@ -1,6 +1,6 @@
 import { beginFrame, createViewport } from './core/canvas';
 import { createLoop } from './core/loop';
-import { createCamera, updateCamera } from './game/camera';
+import { createCamera, defaultCameraTuning, updateCamera } from './game/camera';
 import { defaultShipTuning } from './game/ship';
 import { createWorld, updateWorld } from './game/world';
 import { createStarfield, drawStarfield } from './game/starfield';
@@ -18,6 +18,7 @@ import {
   drawThreatMarkers,
 } from './render/combat-renderer';
 import { drawDebugOverlay } from './render/debug-overlay';
+import { applyWorldTransform, type ViewTransform } from './render/view-transform';
 import { drawShip, playerHull } from './render/ship-renderer';
 import { drawJoystick, drawTouchButtons } from './render/touch-hud';
 import { installDevHook } from './dev-hook';
@@ -36,6 +37,7 @@ const getSize = (): { width: number; height: number } => ({
 const settings: TunableSettings = loadSettings({
   ship: { ...defaultShipTuning },
   stick: { ...defaultJoystickConfig, zone: { ...defaultJoystickConfig.zone }, anchor: { ...defaultJoystickConfig.anchor } },
+  camera: { ...defaultCameraTuning },
   stickSide: 'center',
   stickHeight: { ...DEFAULT_REST_HEIGHTS },
   buttonPlacement: 'column',
@@ -129,7 +131,7 @@ const loop = createLoop({
     buttons.update();
     const control = input.poll();
     updateWorld(world, { control, shipTuning: settings.ship }, dt);
-    updateCamera(camera, ship, dt);
+    updateCamera(camera, ship, settings.camera, dt);
 
     if (!hintRetired && control.source !== 'none') {
       hintRetired = true;
@@ -148,12 +150,17 @@ const loop = createLoop({
     ctx.fillStyle = '#05080f';
     ctx.fillRect(0, 0, width, height);
 
-    const camX = camera.pos.x - width / 2;
-    const camY = camera.pos.y - height / 2;
-    drawStarfield(ctx, starfield, camX, camY, width, height);
+    const viewTransform: ViewTransform = {
+      camX: camera.pos.x,
+      camY: camera.pos.y,
+      zoom: camera.zoom,
+      width,
+      height,
+    };
+    drawStarfield(ctx, starfield, viewTransform);
 
     ctx.save();
-    ctx.translate(-camX, -camY);
+    applyWorldTransform(ctx, viewTransform);
     drawParticles(ctx, world.particles.items);
     drawEnemies(ctx, world.enemies, alpha);
     drawProjectiles(ctx, world.projectiles.items, alpha);
@@ -167,9 +174,9 @@ const loop = createLoop({
     }
     ctx.restore();
 
-    drawThreatMarkers(ctx, world.enemies, camX, camY, width, height);
+    drawThreatMarkers(ctx, world.enemies, viewTransform);
     drawDamageFlash(ctx, world.player.hitFlash, width, height);
-    drawCombatHud(ctx, world, width, height, settings.showDebug ? 142 : 18);
+    drawCombatHud(ctx, world, width, height, settings.showDebug ? 158 : 18);
 
     drawJoystick(ctx, joystick.visual, touchHudOpacity);
     drawTouchButtons(ctx, buttons.visuals, touchHudOpacity);
@@ -177,6 +184,7 @@ const loop = createLoop({
     if (settings.showDebug) {
       drawDebugOverlay(ctx, {
         fps,
+        zoom: camera.zoom,
         control: input.state,
         ship,
         tuning: settings.ship,

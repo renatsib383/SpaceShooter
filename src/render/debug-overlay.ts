@@ -4,6 +4,7 @@ import { speedOf, type ShipTuning } from '../game/ship';
 
 export interface DebugInfo {
   fps: number;
+  zoom: number;
   control: ControlState;
   ship: Ship;
   tuning: ShipTuning;
@@ -16,7 +17,7 @@ export function drawDebugOverlay(
   x = 14,
   y = 18,
 ): void {
-  const { control, ship, tuning, fps } = info;
+  const { control, ship, tuning, fps, zoom } = info;
   const magnitude = Math.hypot(control.move.x, control.move.y);
   const lines = [
     `${fps.toFixed(0)} fps`,
@@ -24,6 +25,7 @@ export function drawDebugOverlay(
     `source   ${control.source}`,
     `stick    ${control.move.x.toFixed(2)}, ${control.move.y.toFixed(2)}  |${magnitude.toFixed(2)}|`,
     `speed    ${speedOf(ship).toFixed(0)} / ${tuning.maxSpeed} px/s`,
+    `zoom     ${zoom.toFixed(2)}x`,
     `heading  ${((ship.angle * 180) / Math.PI).toFixed(0)}deg`,
     `throttle ${ship.throttle.toFixed(2)}${control.boost ? '  BOOST' : ''}${control.fire ? '  FIRE' : ''}`,
   ];

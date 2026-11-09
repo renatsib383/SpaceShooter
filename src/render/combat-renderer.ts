@@ -2,6 +2,7 @@ import { TAU, angleDelta } from '../core/math';
 import type { Enemy } from '../game/enemies';
 import type { Particle } from '../game/particles';
 import type { Projectile } from '../game/projectiles';
+import { worldToScreenX, worldToScreenY, type ViewTransform } from './view-transform';
 
 /**
  * Projectiles are drawn as a short streak along their own velocity rather than
@@ -114,11 +115,9 @@ export function drawParticles(
 export function drawThreatMarkers(
   ctx: CanvasRenderingContext2D,
   enemies: readonly Enemy[],
-  camX: number,
-  camY: number,
-  width: number,
-  height: number,
+  v: ViewTransform,
 ): void {
+  const { width, height } = v;
   const cx = width / 2;
   const cy = height / 2;
   const margin = 26;
@@ -126,8 +125,10 @@ export function drawThreatMarkers(
   ctx.save();
   for (const e of enemies) {
     if (!e.alive) continue;
-    const sx = e.x - camX;
-    const sy = e.y - camY;
+    // Projected through the camera zoom: at a bare subtraction, pulling back
+    // would keep flagging raiders that are now plainly visible on screen.
+    const sx = worldToScreenX(v, e.x);
+    const sy = worldToScreenY(v, e.y);
     if (sx >= 0 && sx <= width && sy >= 0 && sy <= height) continue;
 
     const angle = Math.atan2(sy - cy, sx - cx);

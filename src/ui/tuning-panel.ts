@@ -1,3 +1,4 @@
+import { defaultCameraTuning, type CameraTuning } from '../game/camera';
 import type { ControlScheme, ShipTuning } from '../game/ship';
 import { DEFAULT_REST_HEIGHTS } from '../input/layout';
 import type { ButtonPlacement, StickSide } from '../input/layout';
@@ -5,6 +6,7 @@ import type { JoystickConfig, StickPlacement } from '../input/virtual-joystick';
 
 export interface TunableSettings {
   ship: ShipTuning;
+  camera: CameraTuning;
   stick: JoystickConfig;
   /** Which part of the screen the movement stick claims. */
   stickSide: StickSide;
@@ -86,6 +88,39 @@ const fields: readonly NumericField[] = [
     format: (v) => v.toFixed(2),
   },
   {
+    label: 'Zoom at speed',
+    min: 0.3,
+    max: 1,
+    step: 0.02,
+    get: (s) => s.camera.zoomAtSpeed,
+    set: (s, v) => {
+      s.camera.zoomAtSpeed = v;
+    },
+    format: (v) => `${v.toFixed(2)}x`,
+  },
+  {
+    label: 'Zoom ease',
+    min: 0.05,
+    max: 2,
+    step: 0.05,
+    get: (s) => s.camera.zoomHalfLife,
+    set: (s, v) => {
+      s.camera.zoomHalfLife = v;
+    },
+    format: (v) => `${v.toFixed(2)}s`,
+  },
+  {
+    label: 'Look ahead',
+    min: 0,
+    max: 1,
+    step: 0.05,
+    get: (s) => s.camera.lookAhead,
+    set: (s, v) => {
+      s.camera.lookAhead = v;
+    },
+    format: (v) => `${v.toFixed(2)}s`,
+  },
+  {
     label: 'Stick radius',
     min: 32,
     max: 140,
@@ -129,6 +164,7 @@ export function loadSettings(defaults: TunableSettings): TunableSettings {
     const saved = JSON.parse(raw) as Partial<TunableSettings> & { handedness?: StickSide };
     return {
       ship: { ...defaults.ship, ...saved.ship },
+      camera: { ...defaultCameraTuning, ...defaults.camera, ...saved.camera },
       stick: {
         ...defaults.stick,
         ...saved.stick,

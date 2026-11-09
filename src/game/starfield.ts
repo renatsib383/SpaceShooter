@@ -1,4 +1,5 @@
 import { wrap } from '../core/math';
+import type { ViewTransform } from '../render/view-transform';
 
 export interface StarLayer {
   /** Parallax factor: 0 = infinitely far (static), 1 = moves with the camera. */
@@ -57,30 +58,41 @@ export function createStarfield(seed = 1337): Starfield {
   return { layers };
 }
 
+/**
+ * Drawn straight to screen space rather than inside the world transform.
+ *
+ * Each layer is scaled by the camera zoom so it stays locked to the ships on
+ * top of it, but star *size* is deliberately left in screen pixels: scaling a
+ * 1 px star down would make the far layers disappear exactly when zooming out
+ * is supposed to show more.
+ */
 export function drawStarfield(
   ctx: CanvasRenderingContext2D,
   field: Starfield,
-  camX: number,
-  camY: number,
-  width: number,
-  height: number,
+  v: ViewTransform,
 ): void {
+  const { width, height, zoom } = v;
+
   for (const layer of field.layers) {
     const { tile, depth, stars, size, alpha } = layer;
-    // Offset of the tile grid for this layer, in screen space.
-    const offX = wrap(-camX * depth, tile);
-    const offY = wrap(-camY * depth, tile);
-    const cols = Math.ceil(width / tile) + 1;
-    const rows = Math.ceil(height / tile) + 1;
+    const tileS = tile * zoom;
+    if (tileS <= 0) continue;
+
+    // Where this layer's tile grid starts on screen, including the parallax
+    // shift and the viewport centre that zoom scales about.
+    const offX = wrap(width / 2 - v.camX * depth * zoom, tileS);
+    const offY = wrap(height / 2 - v.camY * depth * zoom, tileS);
+    const cols = Math.ceil(width / tileS) + 1;
+    const rows = Math.ceil(height / tileS) + 1;
 
     ctx.fillStyle = `rgba(214, 230, 255, ${alpha})`;
     for (let cx = -1; cx < cols; cx++) {
       for (let cy = -1; cy < rows; cy++) {
-        const baseX = offX + cx * tile;
-        const baseY = offY + cy * tile;
+        const baseX = offX + cx * tileS;
+        const baseY = offY + cy * tileS;
         for (let s = 0; s < stars.length; s += 2) {
-          const x = baseX + stars[s]!;
-          const y = baseY + stars[s + 1]!;
+          const x = baseX + stars[s]! * zoom;
+          const y = baseY + stars[s + 1]! * zoom;
           if (x < -size || y < -size || x > width + size || y > height + size) continue;
           ctx.fillRect(x, y, size, size);
         }
