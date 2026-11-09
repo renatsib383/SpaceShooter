@@ -56,7 +56,12 @@ Wi-Fi to test the real thing. Browser-level checks live in
 
 Every push to the default branch builds and publishes to GitHub Pages via
 [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml), after
-typecheck and tests pass. That gives the game a plain URL to open on a phone,
+typecheck and tests pass.
+
+One-time setup, done by hand in **Settings > Pages > Build and deployment**:
+set **Source** to **GitHub Actions**. The workflow cannot do this itself —
+`GITHUB_TOKEN` has no `administration` permission, so the API refuses to
+create the Pages site. That gives the game a plain URL to open on a phone,
 which beats hunting for a LAN address on networks that isolate clients.
 
 The build uses a relative `base`, so it works from a project Pages subpath
