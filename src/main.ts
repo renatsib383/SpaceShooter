@@ -56,7 +56,16 @@ const syncLayout = (): void => {
 
 createTuningPanel(ui, settings, syncLayout);
 
-installDevHook({ ship, camera, input, joystick, buttons, settings, applyLayout: syncLayout });
+installDevHook({
+  ship,
+  camera,
+  input,
+  joystick,
+  buttons,
+  settings,
+  applyLayout: syncLayout,
+  hudOpacity: () => touchHudOpacity,
+});
 
 const hintText = (): string => {
   const steer = settings.handedness === 'right' ? 'right' : 'left';
@@ -76,11 +85,13 @@ syncLayout();
 
 // Fade the touch HUD in only once a touch has actually happened, so the
 // desktop view is not cluttered with controls nobody can use.
+//
+// Presence is asked of the devices rather than tracked by a listener of our
+// own: the buttons stop propagation when they claim a press, so a separate
+// listener would miss a first touch that landed on a button and leave the
+// whole HUD invisible.
 let touchHudOpacity = 0;
-let touchSeen = false;
-canvas.addEventListener('pointerdown', (e) => {
-  if (e.pointerType === 'touch' || e.pointerType === 'pen') touchSeen = true;
-});
+const touchSeen = (): boolean => joystick.sawTouch || buttons.sawTouch;
 
 // The hint explains the controls it sits next to, so it must not linger under
 // them. Retire it as soon as any input arrives.
@@ -103,7 +114,7 @@ const loop = createLoop({
       hint.classList.add('is-retired');
     }
 
-    const wanted = touchSeen ? (joystick.active || settings.stick.showIdle ? 1 : 0) : 0;
+    const wanted = touchSeen() ? (joystick.active || settings.stick.showIdle ? 1 : 0) : 0;
     touchHudOpacity += (wanted - touchHudOpacity) * Math.min(1, dt * 10);
   },
   render(alpha, frameDt) {

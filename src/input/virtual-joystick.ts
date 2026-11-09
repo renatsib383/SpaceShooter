@@ -58,6 +58,8 @@ export interface VirtualJoystick extends InputDevice {
   readonly active: boolean;
   /** Current reading, magnitude 0..1. */
   readonly value: Vec2;
+  /** True once a finger or stylus has touched this surface. */
+  readonly sawTouch: boolean;
 }
 
 interface Size {
@@ -117,6 +119,7 @@ export function createVirtualJoystick(
   config: JoystickConfig = { ...defaultJoystickConfig },
 ): VirtualJoystick {
   let pointerId: number | null = null;
+  let sawTouch = false;
   let origin: Vec2 = { x: 0, y: 0 };
   const value: Vec2 = { x: 0, y: 0 };
   const visual: JoystickVisual = {
@@ -161,6 +164,9 @@ export function createVirtualJoystick(
   };
 
   const onPointerDown = (e: PointerEvent): void => {
+    // Recorded before any early return, so a touch that lands outside this
+    // stick's zone still counts as "this player is using touch".
+    if (e.pointerType === 'touch' || e.pointerType === 'pen') sawTouch = true;
     if (pointerId !== null) return;
     const p = localPoint(e);
     const size = getSize();
@@ -201,6 +207,9 @@ export function createVirtualJoystick(
     },
     get value(): Vec2 {
       return value;
+    },
+    get sawTouch(): boolean {
+      return sawTouch;
     },
     update(): void {
       refreshIdle();

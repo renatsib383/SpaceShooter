@@ -24,6 +24,8 @@ export interface TouchButtonVisual extends TouchButtonSpec {
 
 export interface TouchButtons extends InputDevice {
   readonly visuals: readonly TouchButtonVisual[];
+  /** True once a finger or stylus has touched this surface. */
+  readonly sawTouch: boolean;
   /**
    * Recompute button centres. Call once per frame: they are fractions of the
    * viewport, so they move on resize, rotation and any layout change.
@@ -48,6 +50,7 @@ export function createTouchButtons(
   specs: readonly TouchButtonSpec[] = defaultTouchButtons,
 ): TouchButtons {
   const held = new Map<number, TouchButtonSpec['id']>();
+  let sawTouch = false;
   const visuals: TouchButtonVisual[] = specs.map((s) => ({
     ...s,
     center: { x: 0, y: 0 },
@@ -83,6 +86,10 @@ export function createTouchButtons(
   };
 
   const onPointerDown = (e: PointerEvent): void => {
+    // This handler runs in the capture phase and stops propagation when it
+    // claims a press, so it is the only listener guaranteed to see a touch
+    // that lands on a button. It must record presence itself.
+    if (e.pointerType === 'touch' || e.pointerType === 'pen') sawTouch = true;
     const target2 = hit(localPoint(e));
     if (!target2) return;
     held.set(e.pointerId, target2.id);
@@ -113,6 +120,9 @@ export function createTouchButtons(
 
   return {
     visuals,
+    get sawTouch(): boolean {
+      return sawTouch;
+    },
     update(): void {
       refreshCenters();
     },

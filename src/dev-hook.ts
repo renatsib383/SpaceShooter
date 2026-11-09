@@ -19,6 +19,8 @@ export interface SandboxHandle {
   settings: TunableSettings;
   /** Re-apply the touch layout after changing `settings.handedness`. */
   applyLayout(): void;
+  /** Current touch-HUD fade, 0..1. */
+  hudOpacity(): number;
 }
 
 declare global {

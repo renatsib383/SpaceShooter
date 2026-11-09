@@ -135,6 +135,11 @@ undone by accident:
   indicator on most phones and a source of accidental system gestures.
 - **The hint retires on first input.** It describes the controls it sits next
   to, so it must not linger underneath them.
+- **Touch presence is asked of the devices, not tracked by a listener.** The
+  buttons stop propagation when they claim a press, so a separate listener
+  misses a first touch that lands on a button and the whole HUD stays
+  invisible. Each device reports its own truth instead, which cannot be
+  broken by listener ordering.
 
 ## Layout
 

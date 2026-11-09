@@ -367,6 +367,39 @@ function check(name, pass, detail) {
 
   await page.screenshot({ path: `${SHOT}/05-landscape.png`, scale: 'css' });
 
+  // ---- The touch HUD must reveal itself on the FIRST touch, wherever it
+  // lands. A press on a button is claimed in the capture phase and stops
+  // propagation, so presence detection must not depend on listener order. ----
+  for (const [label, spot] of [
+    ['empty space', [0.7, 0.3]],
+    ['the FIRE button', [0.14, 0.74]],
+    ['the BST button', [0.3, 0.86]],
+  ]) {
+    const fresh = await ctx.newPage();
+    await fresh.goto(URL, { waitUntil: 'load' });
+    await fresh.waitForFunction(() => !!window.__sandbox, null, { timeout: 10000 });
+    await fresh.waitForTimeout(300);
+
+    const hidden = await fresh.evaluate(() => window.__sandbox.hudOpacity());
+    await fresh.evaluate(([fx, fy]) => {
+      const c = document.querySelector('#stage');
+      const x = fx * innerWidth, y = fy * innerHeight;
+      const mk = (t) => new PointerEvent(t, { pointerId: 77, pointerType: 'touch',
+        isPrimary: true, clientX: x, clientY: y, bubbles: true, cancelable: true });
+      c.dispatchEvent(mk('pointerdown'));
+      c.dispatchEvent(mk('pointerup'));
+    }, spot);
+    await fresh.waitForTimeout(600);
+    const shown = await fresh.evaluate(() => window.__sandbox.hudOpacity());
+
+    check(
+      `touch HUD appears when the first touch lands on ${label}`,
+      hidden < 0.05 && shown > 0.5,
+      `opacity ${hidden.toFixed(2)} -> ${shown.toFixed(2)}`,
+    );
+    await fresh.close();
+  }
+
   check('no runtime errors over the whole run', errors.length === 0, errors.join(' | '));
 
   await browser.close();
