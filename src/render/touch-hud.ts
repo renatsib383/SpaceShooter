@@ -69,14 +69,23 @@ export function drawTouchButtons(
 
   for (const b of buttons) {
     ctx.beginPath();
-    ctx.arc(b.center.x, b.center.y, b.r, 0, TAU);
+    ctx.arc(b.center.x, b.center.y, b.radius, 0, TAU);
     ctx.fillStyle = b.pressed ? 'rgba(255, 181, 97, 0.35)' : 'rgba(159, 232, 255, 0.1)';
     ctx.fill();
     ctx.lineWidth = 2;
     ctx.strokeStyle = b.pressed ? 'rgba(255, 196, 128, 0.9)' : 'rgba(159, 232, 255, 0.45)';
     ctx.stroke();
+
+    // Font tracks the button so labels stay readable once landscape shrinks
+    // them, and a newline splits the combined button over two lines.
+    const fontSize = Math.max(9, Math.round(b.radius * 0.29));
+    ctx.font = `600 ${fontSize}px ui-monospace, SFMono-Regular, Menlo, monospace`;
     ctx.fillStyle = b.pressed ? '#ffd9ab' : 'rgba(200, 236, 255, 0.75)';
-    ctx.fillText(b.label, b.center.x, b.center.y);
+
+    const lines = b.label.split('\n');
+    const lineHeight = fontSize * 1.15;
+    const top = b.center.y - ((lines.length - 1) * lineHeight) / 2;
+    lines.forEach((line, i) => ctx.fillText(line, b.center.x, top + i * lineHeight));
   }
 
   ctx.restore();

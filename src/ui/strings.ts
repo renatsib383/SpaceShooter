@@ -16,7 +16,8 @@ export const ui = {
   buttons: {
     fire: 'ОГОНЬ',
     boost: 'ФОРС',
-    brake: 'СТОП',
+    /** Two lines: it is one press that both stops and shoots. */
+    fireBrake: 'СТОП\nОГОНЬ',
   },
 
   hud: {
@@ -146,7 +147,7 @@ export const ui = {
       right: 'справа',
     },
     line: (steer: string, actions: string): string =>
-      `Нажимайте ${steer}, чтобы управлять · ОГОНЬ / СТОП / ФОРС ${actions}\n` +
+      `Нажимайте ${steer}, чтобы управлять · кнопки ${actions}\n` +
       'На компьютере: WASD или стрелки + пробел · геймпад поддерживается',
   },
 } as const;

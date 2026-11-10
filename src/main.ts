@@ -31,9 +31,17 @@ const uiLayer = document.querySelector<HTMLDivElement>('#ui');
 if (!canvas || !uiLayer) throw new Error('missing #stage or #ui in the document');
 
 const view = createViewport(canvas);
-const getSize = (): { width: number; height: number } => ({
+/**
+ * HUD footprint at the top of the screen, from the same numbers that draw it.
+ * The debug overlay is nine rows tall, so turning it on genuinely squeezes the
+ * controls on a short landscape screen.
+ */
+const hudBottom = (): number => (settings.showDebug ? 204 : 52);
+
+const getSize = (): { width: number; height: number; reservedTop: number } => ({
   width: view.width,
   height: view.height,
+  reservedTop: hudBottom(),
 });
 
 const settings: TunableSettings = loadSettings({

@@ -34,7 +34,9 @@ export const defaultJoystickConfig: JoystickConfig = {
   anchor: { x: 0.34, y: 0.78 },
   radius: 64,
   deadZone: 0.12,
-  recenter: true,
+  // Off by default: recentring slides the stick in the direction you drag,
+  // which reads as the control wandering out from under your thumb.
+  recenter: false,
   showIdle: true,
 };
 

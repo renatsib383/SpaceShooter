@@ -467,12 +467,10 @@ function check(name, pass, detail) {
   // ---- The touch HUD must reveal itself on the FIRST touch, wherever it
   // lands. A press on a button is claimed in the capture phase and stops
   // propagation, so presence detection must not depend on listener order. ----
-  for (const [label, spot] of [
-    ['empty space', [0.7, 0.3]],
-    ['the FIRE button', [0.15, 0.82]],
-    ['the BRAKE button', [0.15, 0.75]],
-    ['the BOOST button', [0.15, 0.6]],
-  ]) {
+  const touchSpots = await page.evaluate(() =>
+    window.__sandbox.buttons.visuals.map((b) => [b.id, [b.center.x / innerWidth, b.center.y / innerHeight]]));
+
+  for (const [label, spot] of [['empty space', [0.7, 0.3]], ...touchSpots]) {
     const fresh = await ctx.newPage();
     await fresh.goto(URL, { waitUntil: 'load' });
     await fresh.waitForFunction(() => !!window.__sandbox, null, { timeout: 10000 });
@@ -508,7 +506,9 @@ function check(name, pass, detail) {
     S.ship.vel.y = 0;
   });
   const brakeSpot = await page.evaluate(() => {
-    const b = window.__sandbox.buttons.visuals.find((v) => v.id === 'brake');
+    // The plain brake button is gone; stopping now goes through the combined
+    // stop-and-shoot button.
+    const b = window.__sandbox.buttons.visuals.find((v) => v.id === 'fireBrake');
     return { x: b.center.x, y: b.center.y };
   });
 
@@ -544,7 +544,7 @@ function check(name, pass, detail) {
     }
   });
 
-  check('brake button registers', braked.brake === true, JSON.stringify(braked));
+  check('combined button registers as a brake', braked.brake === true, JSON.stringify(braked));
   check(
     'brake stops the ship',
     braked.speed < speedBefore * 0.05,
@@ -558,20 +558,17 @@ function check(name, pass, detail) {
   );
   await page.screenshot({ path: `${SHOT}/07-braking.png`, scale: 'css' });
 
-  // ---- One thumb in the shared band must hold ОГОНЬ and СТОП together. ----
-  const band = await page.evaluate(() => {
+  // ---- The combined button is one press that both stops and shoots. ----
+  const spots = await page.evaluate(() => {
     const S = window.__sandbox;
     S.settings.stickSide = 'center';
     S.settings.buttonPlacement = 'column';
     S.applyLayout();
-    const fire = S.buttons.visuals.find((b) => b.id === 'fire');
-    const brake = S.buttons.visuals.find((b) => b.id === 'brake');
-    return {
-      x: fire.center.x,
-      shared: (fire.center.y + brake.center.y) / 2,
-      onlyFire: fire.center.y + fire.r * 0.8,
-      onlyBrake: brake.center.y - brake.r * 0.8,
+    const at = (id) => {
+      const b = S.buttons.visuals.find((v) => v.id === id);
+      return { x: b.center.x, y: b.center.y, r: b.radius };
     };
+    return { fire: at('fire'), combined: at('fireBrake'), boost: at('boost') };
   });
 
   const pressAt = async (x, y, id) => {
@@ -581,10 +578,11 @@ function check(name, pass, detail) {
         clientX: x, clientY: y, bubbles: true, cancelable: true,
       }));
     }, [x, y, id]);
-    await page.waitForTimeout(180);
+    await page.waitForTimeout(200);
     const state = await page.evaluate(() => ({
       fire: window.__sandbox.input.state.fire,
       brake: window.__sandbox.input.state.brake,
+      boost: window.__sandbox.input.state.boost,
     }));
     await page.evaluate((id) => {
       document.querySelector('#stage').dispatchEvent(new PointerEvent('pointerup', {
@@ -595,25 +593,49 @@ function check(name, pass, detail) {
     return state;
   };
 
-  const both = await pressAt(band.x, band.shared, 61);
+  const combined = await pressAt(spots.combined.x, spots.combined.y, 61);
   check(
-    'one finger in the shared band holds ОГОНЬ and СТОП together',
-    both.fire === true && both.brake === true,
-    JSON.stringify(both),
+    'the combined button fires and brakes from one press',
+    combined.fire === true && combined.brake === true,
+    JSON.stringify(combined),
   );
 
-  const fireOnly = await pressAt(band.x, band.onlyFire, 62);
+  const fireOnly = await pressAt(spots.fire.x, spots.fire.y, 62);
   check(
-    'low on ОГОНЬ fires without braking',
+    'ОГОНЬ fires without braking',
     fireOnly.fire === true && fireOnly.brake === false,
     JSON.stringify(fireOnly),
   );
 
-  const brakeOnly = await pressAt(band.x, band.onlyBrake, 63);
+  const boostOnly = await pressAt(spots.boost.x, spots.boost.y, 63);
   check(
-    'high on СТОП brakes without firing',
-    brakeOnly.brake === true && brakeOnly.fire === false,
-    JSON.stringify(brakeOnly),
+    'ФОРС boosts without firing or braking',
+    boostOnly.boost === true && boostOnly.fire === false && boostOnly.brake === false,
+    JSON.stringify(boostOnly),
+  );
+
+  // ---- The stick must stay put under the thumb, not slide with the drag. ----
+  const drift = await page.evaluate(async () => {
+    const S = window.__sandbox;
+    const c = document.querySelector('#stage');
+    const x = innerWidth * 0.5;
+    const y = innerHeight * 0.6;
+    const mk = (t, cx, cy) => new PointerEvent(t, { pointerId: 71, pointerType: 'touch',
+      isPrimary: true, clientX: cx, clientY: cy, bubbles: true, cancelable: true });
+    c.dispatchEvent(mk('pointerdown', x, y));
+    await new Promise((r) => setTimeout(r, 80));
+    const placed = { ...S.joystick.visual.origin };
+    // Drag far past the rim, the case that used to drag the origin along.
+    c.dispatchEvent(mk('pointermove', x + 240, y));
+    await new Promise((r) => setTimeout(r, 120));
+    const after = { ...S.joystick.visual.origin };
+    c.dispatchEvent(mk('pointerup', x + 240, y));
+    return { placed, after, recenter: S.settings.stick.recenter };
+  });
+  check(
+    'the stick stays where it was placed while dragging',
+    drift.recenter === false && Math.abs(drift.after.x - drift.placed.x) < 0.5,
+    JSON.stringify(drift),
   );
 
   check('no runtime errors over the whole run', errors.length === 0, errors.join(' | '));

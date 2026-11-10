@@ -1,5 +1,5 @@
 import type { JoystickConfig } from './virtual-joystick';
-import type { TouchButtonSpec } from './touch-buttons';
+import type { ActionId, TouchButtonSpec } from './touch-buttons';
 
 /** Which part of the screen the movement stick claims. */
 export type StickSide = 'left' | 'center' | 'right';
@@ -36,39 +36,41 @@ export const DEFAULT_REST_HEIGHTS: Record<StickSide, number> = {
   right: 0.74,
 };
 
-type ButtonSpot = { cx: number; cy: number };
+type ButtonSpot = { cx: number; bottom: number };
 
 /**
  * Button positions per placement, written for the canonical case and mirrored
  * when the stick would collide. Deriving both sides from one set keeps a
  * repeated application idempotent instead of flip-flopping.
  */
-const BUTTONS: Record<ButtonPlacement, Record<TouchButtonSpec['id'], ButtonSpot>> = {
+const BUTTONS: Record<ButtonPlacement, Record<ActionId, ButtonSpot>> = {
   // Canonical: stick left, actions spread over the right half.
+  // Stacked on one x like the others. Spreading them diagonally put ФОРС
+  // inside a centred stick's zone, where it sat on top of the stick.
   side: {
-    fire: { cx: 0.86, cy: 0.74 },
-    brake: { cx: 0.86, cy: 0.67 },
-    boost: { cx: 0.7, cy: 0.86 },
+    fire: { cx: 0.86, bottom: 100 },
+    fireBrake: { cx: 0.86, bottom: 184 },
+    boost: { cx: 0.86, bottom: 276 },
   },
-  // Kept off the very bottom: that band is the home indicator on most phones,
-  // and a thumb resting there triggers system gestures.
+  // Offsets are measured up from the bottom edge, and the lowest button is
+  // kept clear of the very bottom band: that is the home indicator on most
+  // phones, where a resting thumb triggers system gestures.
   center: {
-    fire: { cx: 0.5, cy: 0.84 },
-    brake: { cx: 0.5, cy: 0.77 },
-    boost: { cx: 0.5, cy: 0.62 },
+    fire: { cx: 0.5, bottom: 100 },
+    fireBrake: { cx: 0.5, bottom: 184 },
+    boost: { cx: 0.5, bottom: 276 },
   },
   // Canonical column hugs the LEFT edge, for a stick that is centred or right.
-  // FIRE lowest, where the thumb rests; BRAKE next, overlapping it so one
-  // thumb in the shared band holds both — braking to shoot from a standstill
-  // is a single gesture, not two fingers.
+  // ОГОНЬ lowest, where the thumb rests; the combined stop-and-shoot button
+  // directly above it, since the two are used together.
   column: {
-    fire: { cx: 0.15, cy: 0.82 },
-    brake: { cx: 0.15, cy: 0.75 },
-    boost: { cx: 0.15, cy: 0.6 },
+    fire: { cx: 0.15, bottom: 100 },
+    fireBrake: { cx: 0.15, bottom: 184 },
+    boost: { cx: 0.15, bottom: 276 },
   },
 };
 
-type PlaceableButton = Pick<TouchButtonSpec, 'id'> & { cx: number; cy: number };
+type PlaceableButton = Pick<TouchButtonSpec, 'id'> & { cx: number; bottom: number };
 
 /**
  * Lay out the touch controls.
@@ -110,6 +112,6 @@ export function applyTouchLayout(
   for (const button of buttons) {
     const spot = BUTTONS[placement][button.id];
     button.cx = mirrored ? 1 - spot.cx : spot.cx;
-    button.cy = spot.cy;
+    button.bottom = spot.bottom;
   }
 }

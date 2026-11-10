@@ -71,7 +71,7 @@ The build uses a relative `base`, so it works from a project Pages subpath
 
 | | |
 |---|---|
-| Actions | `ОГОНЬ` fires, `СТОП` brakes, `ФОРС` boosts. The brake cuts thrust and sheds speed in about a sixth of a second per halving, while leaving rotation at full rate — the point is to hold station and still be able to aim. `ОГОНЬ` and `СТОП` overlap, so one thumb in the shared band holds both; press low to fire only, high to brake only. |
+| Actions | `ОГОНЬ` fires, `СТОП ОГОНЬ` stops and shoots in one press, `ФОРС` boosts. Braking cuts thrust and sheds speed in about a sixth of a second per halving, while leaving rotation at full rate — the point is to hold station and still be able to aim. |
 | Touch | The stick takes half the screen — left, middle or right, under `НАСТРОЙКИ` > `Стик`. `ОГОНЬ` and `ФОРС` go in a vertical column (`Столбец`), spread over the opposite half (`Сбоку`), or stacked in the middle (`Центр`), under `НАСТРОЙКИ` > `Кнопки`. Default: centre stick, left column. |
 | Keyboard | `WASD` or arrows to steer, `Space` to fire, `Shift` to boost, `B` or `Ctrl` to brake. Brake is deliberately not `S` or Down, which are a movement direction in every scheme. |
 | Gamepad | Left stick steers, right stick aims, `A`/`RT` fires, `LT` boosts, `B`/`LB` brakes. |
@@ -107,16 +107,23 @@ undone by accident:
   corrections stay small.
 - **The dead zone is radial.** A per-axis dead zone cuts a square hole out of
   the centre and makes slow diagonal movement impossible.
-- **One pointer id per control, but a pointer may hold several buttons.** A
-  thumb on an action button can never steal or jitter the stick, and action
-  buttons are bound in the capture phase so a press that lands on one is not
-  also read as a steer. Within the buttons, a press activates *every* button
-  whose hit area contains it — a touch is a single point, so a shared band is
-  the only way one thumb can hold two buttons at once.
-- **`ОГОНЬ` and `СТОП` overlap on purpose; nothing else does.** Braking to
-  shoot from a standstill is one gesture, not two fingers. Every other pair
-  stays separated, or presses become ambiguous, and each of the two keeps a
-  region that is unambiguously its own.
+- **One pointer id per control.** A thumb on an action button can never steal
+  or jitter the stick, and action buttons are bound in the capture phase so a
+  press that lands on one is not also read as a steer.
+- **Stopping to shoot is its own button, not an overlap.** Braking while
+  firing is one intent, so it gets one labelled target. An earlier version
+  overlapped `ОГОНЬ` and a plain `СТОП` so a thumb in the shared band hit
+  both; a button that does the combination says what it does.
+- **The stick does not recentre while dragging.** Pulling the origin along
+  behind the finger keeps long drags off the rim, but it reads as the control
+  sliding out from under your thumb. Available under `Смещать центр`, off by
+  default.
+- **Buttons are anchored to the bottom edge in pixels, not as a fraction of
+  height**, and scaled to the height actually left under the HUD. Fractions
+  put the column in a different physical place on a tall phone than on a short
+  landscape screen, and a full-size stack climbs into the HUD when the screen
+  is 390 px tall. The reach of the column is derived from the button specs, so
+  moving one cannot silently invalidate the fit.
 - **`pointercancel` is a release.** That is the event the OS sends when it
   takes the touch for a system gesture; ignoring it latches the stick on.
 - **Pointer capture is best-effort.** `setPointerCapture` throws if the
